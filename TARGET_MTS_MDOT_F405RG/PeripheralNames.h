@@ -37,7 +37,9 @@ extern "C" {
 #endif
 
 typedef enum {
-    ADC_1 = (int)ADC1_BASE
+    ADC_1 = (int)ADC1_BASE,
+    ADC_2 = (int)ADC2_BASE,
+    ADC_3 = (int)ADC3_BASE
 } ADCName;
 
 typedef enum {
@@ -76,6 +78,7 @@ typedef enum {
     PWM_3  = (int)TIM3_BASE,
     PWM_4  = (int)TIM4_BASE,
     PWM_5  = (int)TIM5_BASE,
+    PWM_8  = (int)TIM8_BASE,
     PWM_9  = (int)TIM9_BASE,
     PWM_10 = (int)TIM10_BASE,
     PWM_11 = (int)TIM11_BASE
