@@ -53,7 +53,7 @@ static void init_spi(spi_t *obj)
     SpiHandle.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLED;
     SpiHandle.Init.CRCPolynomial     = 7;
     SpiHandle.Init.DataSize          = obj->bits;
-    SpiHandle.Init.FirstBit          = SPI_FIRSTBIT_MSB;
+    SpiHandle.Init.FirstBit          = obj->order;
     SpiHandle.Init.NSS               = obj->nss;
     SpiHandle.Init.TIMode            = SPI_TIMODE_DISABLED;
 
@@ -170,7 +170,7 @@ void spi_free(spi_t *obj)
     pin_function(obj->pin_ssel, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
 }
 
-void spi_format(spi_t *obj, int bits, int mode, int slave)
+void spi_format(spi_t *obj, int bits, int mode, spi_bitorder_t order, int slave)
 {
     // Save new values
     if (bits == 16) {
@@ -203,6 +203,11 @@ void spi_format(spi_t *obj, int bits, int mode, int slave)
     }
 
     obj->mode = (slave) ? SPI_MODE_SLAVE : SPI_MODE_MASTER;
+    if (order == SPI_MSB) {
+        obj->order = SPI_FIRSTBIT_MSB;
+    } else {
+        obj->order = SPI_FIRSTBIT_LSB;
+    }
 
     init_spi(obj);
 }
