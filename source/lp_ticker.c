@@ -23,36 +23,35 @@
 static TIM_HandleTypeDef TimMasterHandle;
 static uint8_t lp_ticker_inited = 0;
 
-static lp_handler(void)
+static void lp_handler(void)
 {
-    __HAL_TIM_DISABLE_IT();
+    __HAL_TIM_CLEAR_IT(&TimMasterHandle, TIM_IT_CC1);
+    __HAL_TIM_DISABLE_IT(&TimMasterHandle, TIM_IT_CC1);
 }
 
 void lp_ticker_init(void) {
     if (!lp_ticker_inited) {
-        us_ticker_inited = 1;
-        TimMasterHandle.Instance = TIM6;
-        __TIM6_CLK_ENABLE();
-        __TIM6_FORCE_RESET();
-        __TIM6_RELEASE_RESET();
+        lp_ticker_inited = 1;
+        __TIM2_CLK_ENABLE();
+        __TIM2_FORCE_RESET();
+        __TIM2_RELEASE_RESET();
 
         // Update the SystemCoreClock variable
         SystemCoreClockUpdate();
 
         // Configure time base
-        TimMasterHandle.Instance = TIM_MST;
+        TimMasterHandle.Instance = TIM2;
         TimMasterHandle.Init.Period            = 0xFFFFFFFF;
-        TimMasterHandle.Init.Prescaler         = (uint32_t)(SystemCoreClock / 1000) - 1; // 1 ms tick
+        TimMasterHandle.Init.Prescaler         = (uint32_t)(SystemCoreClock / 1000000000) - 1; // 1 ms tick
         TimMasterHandle.Init.ClockDivision     = 0;
         TimMasterHandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
         TimMasterHandle.Init.RepetitionCounter = 0;
         HAL_TIM_OC_Init(&TimMasterHandle);
 
-        NVIC_SetVector(TIM_MST_IRQ, (uint32_t)lp_handler);
-        NVIC_EnableIRQ(TIM_MST_IRQ);
+        NVIC_SetVector(TIM2_IRQn, (uint32_t)lp_handler);
+        NVIC_EnableIRQ(TIM2_IRQn);
 
         HAL_TIM_OC_Start(&TimMasterHandle, TIM_CHANNEL_1);
-        // __HAL_TIM_ENABLE_IT(&TimMasterHandle, TIM_IT_CC2);
     }
 }
 
@@ -60,7 +59,11 @@ uint32_t lp_ticker_read() {
     if (!lp_ticker_inited) {
         lp_ticker_init();
     }
-    return TIM6->CNT;
+    return TIM2->CNT;
+}
+
+uint32_t lp_ticker_get_compare_match(void) {
+    return TIM2->CCMR1;
 }
 
 void lp_ticker_set_interrupt(uint32_t now, uint32_t time) {
