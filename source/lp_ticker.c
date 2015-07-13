@@ -22,11 +22,12 @@
 
 static TIM_HandleTypeDef TimMasterHandle;
 static uint8_t lp_ticker_inited = 0;
+static volatile uint32_t overflows = 0;
 
 static void lp_handler(void)
 {
     __HAL_TIM_CLEAR_IT(&TimMasterHandle, TIM_IT_CC1);
-    __HAL_TIM_DISABLE_IT(&TimMasterHandle, TIM_IT_CC1);
+    overflows++;
 }
 
 void lp_ticker_init(void) {
@@ -62,11 +63,15 @@ uint32_t lp_ticker_read() {
     return TIM2->CNT;
 }
 
+uint32_t lp_ticker_get_overflows_counter(void) {
+    return overflows;
+}
+
 uint32_t lp_ticker_get_compare_match(void) {
     return TIM2->CCMR1;
 }
 
-void lp_ticker_set_interrupt(uint32_t now, uint32_t time) {
+void lp_ticker_set_interrupt(uint32_t time) {
     // Set new output compare value
     __HAL_TIM_SetCompare(&TimMasterHandle, TIM_CHANNEL_1, time);
     // Enable IT
