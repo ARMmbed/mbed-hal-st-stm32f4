@@ -28,6 +28,7 @@
  *******************************************************************************
  */
 #include <stddef.h>
+#include "uvisor-lib/uvisor-lib.h"
 #include "cmsis.h"
 #include "gpio_irq_api.h"
 #include "pinmap.h"
@@ -235,8 +236,8 @@ int gpio_irq_init(gpio_irq_t *obj, PinName pin, gpio_irq_handler handler, uint32
     pin_function(pin, STM_PIN_DATA(STM_MODE_IT_FALLING, GPIO_NOPULL, 0));
 
     // Enable EXTI interrupt
-    NVIC_SetVector(irq_n, vector);
-    NVIC_EnableIRQ(irq_n);
+    vIRQ_SetVector(irq_n, vector);
+    vIRQ_EnableIRQ(irq_n);
 
     // Save informations for future use
     obj->irq_n = irq_n;
@@ -322,11 +323,11 @@ void gpio_irq_set(gpio_irq_t *obj, gpio_irq_event event, uint32_t enable)
 
 void gpio_irq_enable(gpio_irq_t *obj)
 {
-    NVIC_EnableIRQ(obj->irq_n);
+    vIRQ_EnableIRQ(obj->irq_n);
 }
 
 void gpio_irq_disable(gpio_irq_t *obj)
 {
-    NVIC_DisableIRQ(obj->irq_n);
+    vIRQ_DisableIRQ(obj->irq_n);
     obj->event = EDGE_NONE;
 }
