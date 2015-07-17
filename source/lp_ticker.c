@@ -49,8 +49,8 @@ void lp_ticker_init(void) {
         TimMasterHandle.Init.RepetitionCounter = 0;
         HAL_TIM_OC_Init(&TimMasterHandle);
 
-        NVIC_SetVector(TIM2_IRQn, (uint32_t)lp_handler);
-        NVIC_EnableIRQ(TIM2_IRQn);
+        vIRQ_SetVector(TIM2_IRQn, (uint32_t)lp_handler);
+        vIRQ_EnableIRQ(TIM2_IRQn);
 
         HAL_TIM_OC_Start(&TimMasterHandle, TIM_CHANNEL_1);
     }
