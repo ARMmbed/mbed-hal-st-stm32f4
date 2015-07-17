@@ -71,7 +71,8 @@ uint32_t lp_ticker_get_compare_match(void) {
     return TIM2->CCMR1;
 }
 
-void lp_ticker_set_interrupt(uint32_t time) {
+void lp_ticker_set_interrupt(uint32_t now, uint32_t time) {
+    (void)now;
     // Set new output compare value
     __HAL_TIM_SetCompare(&TimMasterHandle, TIM_CHANNEL_1, time);
     // Enable IT
