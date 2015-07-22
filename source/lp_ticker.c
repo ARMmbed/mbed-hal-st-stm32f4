@@ -19,6 +19,8 @@
 #if DEVICE_LOWPOWERTIMER
 
 #include "lp_ticker_api.h"
+#include "sleep_api.h"
+#include "uvisor-lib/uvisor-lib.h"
 
 static TIM_HandleTypeDef TimMasterHandle;
 static uint8_t lp_ticker_inited = 0;
@@ -77,6 +79,14 @@ void lp_ticker_set_interrupt(uint32_t now, uint32_t time) {
     __HAL_TIM_SetCompare(&TimMasterHandle, TIM_CHANNEL_1, time);
     // Enable IT
     __HAL_TIM_ENABLE_IT(&TimMasterHandle, TIM_IT_CC1);
+}
+
+void lp_ticker_sleep_until(uint32_t now, uint32_t time)
+{
+    lp_ticker_set_interrupt(now, time);
+    sleep_t sleep_obj;
+    mbed_enter_sleep(&sleep_obj);
+    mbed_exit_sleep(&sleep_obj);
 }
 
 #endif
