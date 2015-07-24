@@ -33,29 +33,23 @@
 
 #include "cmsis.h"
 
-static TIM_HandleTypeDef TimMasterHandle;
-
-void sleep(void)
+void mbed_enter_sleep(sleep_t *obj)
 {
-    TimMasterHandle.Instance = TIM5;
+    // This currently goes to Sleep Mode, because lp ticker implementation is not
+    // available in the STOP mode
+    obj->TimMasterHandle.Instance = TIM5;
 
     // Disable HAL tick interrupt
-    __HAL_TIM_DISABLE_IT(&TimMasterHandle, TIM_IT_CC2);
+    __HAL_TIM_DISABLE_IT(&obj->TimMasterHandle, TIM_IT_CC2);
 
     // Request to enter SLEEP mode
     HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
-
-    // Enable HAL tick interrupt
-    __HAL_TIM_ENABLE_IT(&TimMasterHandle, TIM_IT_CC2);
 }
 
-void deepsleep(void)
+void mbed_exit_sleep(sleep_t *obj)
 {
-    // Request to enter STOP mode with regulator in low power mode
-    HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
-
-    // After wake-up from STOP reconfigure the PLL
-    SetSysClock();
+    // Enable HAL tick interrupt
+    __HAL_TIM_ENABLE_IT(&obj->TimMasterHandle, TIM_IT_CC2);
 }
 
 #endif
