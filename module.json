@@ -24,7 +24,7 @@
       "mbed-hal-st-stm32f401re": "~0.0.0"
     },
     "stm32f429zi": {
-      "mbed-hal-st-stm32f429zi": "~0.0.0"
+      "mbed-hal-st-stm32f429zi": "~0.1.0"
     },
     "stm32f439zi": {
       "mbed-hal-st-stm32f439zi": "~0.0.0"
