@@ -1,6 +1,6 @@
 {
   "name": "mbed-hal-st-stm32f4",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "mbed HAL module for STM32F4 microcontrollers",
   "keywords": [],
   "author": "Brendan Moran <brendan.moran@arm.com>",
