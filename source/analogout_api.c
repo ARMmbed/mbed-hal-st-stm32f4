@@ -96,6 +96,7 @@ void analogout_init(dac_t *obj, PinName pin)
 
 void analogout_free(dac_t *obj)
 {
+    (void)obj;
 }
 
 static inline void dac_write(dac_t *obj, uint16_t value)
