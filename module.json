@@ -1,6 +1,6 @@
 {
   "name": "mbed-hal-st-stm32f4",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "mbed HAL module for STM32F4 microcontrollers",
   "keywords": [],
   "author": "Brendan Moran <brendan.moran@arm.com>",
@@ -11,8 +11,8 @@
       "type": "Apache-2.0"
     },
     {
-      "url":"https://spdx.org/licenses/BSD-3-Clause",
-      "type":"BSD-3-Clause"
+      "url": "https://spdx.org/licenses/BSD-3-Clause",
+      "type": "BSD-3-Clause"
     }
   ],
   "extraIncludes": [
