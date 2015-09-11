@@ -1,5 +1,5 @@
 /* mbed Microcontroller Library
- * Copyright (c) 2014, STMicroelectronics
+ * Copyright (c) 2014-2015, STMicroelectronics
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "cmsis.h"
+#include "mbed-hal/init_api.h"
 
 // This function is called after RAM initialization and before main.
-void mbed_sdk_init()
+void mbed_hal_init()
 {
     // Update the SystemCoreClock variable.
     SystemCoreClockUpdate();
