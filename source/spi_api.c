@@ -405,4 +405,132 @@ int spi_busy(spi_t *obj)
     return ssp_busy(obj);
 }
 
+// asynchronous API
+void spi_master_transfer(spi_t *obj, void *tx, size_t tx_length, void *rx, size_t rx_length, uint32_t handler, uint32_t event, DMAUsage hint)
+{
+    // TODO: DMA usage is currently ignored
+    (void) hint;
+
+    // check which use-case we have
+    bool use_tx = (tx != NULL && tx_length > 0);
+    bool use_rx = (rx != NULL && rx_length > 0);
+
+    // don't do anything, if the buffers aren't valid
+    if (!use_tx && !use_rx)
+        return;
+
+    SPI_HandleTypeDef *handle = &SpiHandle[obj->spi.module];
+
+    bool is16bit = (handle->Init.DataSize == SPI_DATASIZE_16BIT);
+
+    // copy the buffers to the SPI object
+    obj->tx_buff.buffer = tx;
+    obj->tx_buff.length = tx_length;
+    obj->tx_buff.pos = 0;
+    obj->tx_buff.width = is16bit ? 16 : 8;
+
+    obj->rx_buff.buffer = rx;
+    obj->rx_buff.length = rx_length;
+    obj->rx_buff.pos = 0;
+    obj->rx_buff.width = obj->tx_buff.width;
+
+    obj->spi.event = event;
+
+    // register the thunking handler
+    IRQn_Type irq_n = SpiIRQs[obj->spi.module];
+    vIRQ_SetVector(irq_n, handler);
+    vIRQ_EnableIRQ(irq_n);
+
+    // the HAL expects number of transfers instead of number of bytes
+    // so for 16 bit transfer width the count needs to be halved
+    if (is16bit) {
+        tx_length /= 2;
+        rx_length /= 2;
+    }
+
+    // enable the right hal transfer
+    if (use_tx && use_rx) {
+        // TODO: should this really be min?
+        // There is no way to inform the user about the reduction in transfer size.
+        size_t size = (tx_length < rx_length)? tx_length : rx_length;
+        HAL_SPI_TransmitReceive_IT(handle, (uint8_t*)tx, (uint8_t*)rx, size);
+    } else if (use_tx) {
+        HAL_SPI_Transmit_IT(handle, (uint8_t*)tx, tx_length);
+    } else if (use_rx) {
+        HAL_SPI_Receive_IT(handle, (uint8_t*)rx, rx_length);
+    }
+}
+
+uint32_t spi_irq_handler_asynch(spi_t *obj)
+{
+    // use the right instance
+    SPI_HandleTypeDef *handle = &SpiHandle[obj->spi.module];
+    int event = 0;
+
+    // call the CubeF4 handler, this will update the handle
+    HAL_SPI_IRQHandler(handle);
+
+    if (HAL_SPI_GetState(handle) == HAL_SPI_STATE_READY)
+    {
+        // the transfer has definitely completed
+        event = SPI_EVENT_INTERNAL_TRANSFER_COMPLETE;
+        // diable interrupt
+        vIRQ_DisableIRQ(SpiIRQs[obj->spi.module]);
+
+        int error = HAL_SPI_GetError(handle);
+        if(error != HAL_SPI_ERROR_NONE)
+        {
+            // adjust buffer positions
+            obj->tx_buff.pos = (handle->TxXferSize - handle->TxXferCount);
+            obj->rx_buff.pos = (handle->TxXferSize - handle->RxXferCount);
+
+            if (handle->Init.DataSize == SPI_DATASIZE_16BIT)
+            {
+                // 16 bit transfers need to be doubled to get bytes
+                obj->tx_buff.pos *= 2;
+                obj->rx_buff.pos *= 2;
+            }
+
+            // something went wrong
+            event |= SPI_EVENT_ERROR;
+
+            if (error & HAL_SPI_ERROR_OVR) {
+                // buffer overrun
+                event |= SPI_EVENT_RX_OVERFLOW;
+            }
+        }
+        else {
+            // everything is ok
+            event |= SPI_EVENT_COMPLETE;
+            // adjust buffer positions
+            obj->tx_buff.pos = obj->tx_buff.length;
+            obj->rx_buff.pos = handle->RxXferSize;
+        }
+    }
+
+    return (event & (obj->spi.event | SPI_EVENT_INTERNAL_TRANSFER_COMPLETE));
+}
+
+uint8_t spi_active(spi_t *obj)
+{
+    SPI_HandleTypeDef *handle = &SpiHandle[obj->spi.module];
+    if (HAL_SPI_GetState(handle) == HAL_SPI_STATE_READY)
+        return 0;
+
+    return -1;
+}
+
+// this function is private to the HAL, but we need to access it here anyway
+extern void SPI_TxCloseIRQHandler(SPI_HandleTypeDef *hspi);
+
+void spi_abort_asynch(spi_t *obj)
+{
+    // diable interrupt
+    vIRQ_DisableIRQ(SpiIRQs[obj->spi.module]);
+
+    // clean-up
+    SPI_HandleTypeDef *handle = &SpiHandle[obj->spi.module];
+    SPI_TxCloseIRQHandler(handle);
+}
+
 #endif
