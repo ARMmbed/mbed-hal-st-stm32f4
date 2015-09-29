@@ -1,6 +1,6 @@
 {
   "name": "mbed-hal-st-stm32f4",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "mbed HAL module for STM32F4 microcontrollers",
   "keywords": [],
   "author": "Brendan Moran <brendan.moran@arm.com>",
@@ -25,10 +25,10 @@
   },
   "targetDependencies": {
     "stm32f429zi": {
-      "mbed-hal-st-stm32f429zi": "~0.2.0"
+      "mbed-hal-st-stm32f429zi": "~0.3.0"
     },
     "stm32f439zi": {
-      "mbed-hal-st-stm32f429zi": "~0.2.0"
+      "mbed-hal-st-stm32f429zi": "~0.3.0"
     }
   }
 }
