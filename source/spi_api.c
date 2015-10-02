@@ -1,6 +1,6 @@
 /* mbed Microcontroller Library
  *******************************************************************************
- * Copyright (c) 2014, STMicroelectronics
+ * Copyright (c) 2015, STMicroelectronics
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@
 #include "cmsis.h"
 #include "pinmap.h"
 #include "PeripheralPins.h"
+#include "mbed_error.h"
 
 static SPI_HandleTypeDef SpiHandle;
 
@@ -57,7 +58,9 @@ static void init_spi(spi_t *obj)
     SpiHandle.Init.NSS               = SPI_NSS_SOFT;
     SpiHandle.Init.TIMode            = SPI_TIMODE_DISABLED;
 
-    HAL_SPI_Init(&SpiHandle);
+    if (HAL_SPI_Init(&SpiHandle) != HAL_OK) {
+        error("Cannot initialize SPI");
+    }
 
     __HAL_SPI_ENABLE(&SpiHandle);
 }
@@ -279,7 +282,6 @@ void spi_frequency(spi_t *obj, int hz)
             obj->br_presc = SPI_BAUDRATEPRESCALER_2;   // 50 MHz
         }
     }
-
     // Values depend of PCLK1: 50 MHz
     if ((obj->spi == SPI_2) || (obj->spi == SPI_3)) {
         if (hz < 400000) {
@@ -300,6 +302,47 @@ void spi_frequency(spi_t *obj, int hz)
             obj->br_presc = SPI_BAUDRATEPRESCALER_2;   // 25 MHz
         }
     }
+#elif defined(TARGET_STM32F446RE)
+    // Values depend of PCLK2: 90 MHz
+    if ((obj->spi == SPI_1) || (obj->spi == SPI_4)) {
+        if (hz < 700000) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_256; // 352 kHz
+        } else if ((hz >= 700000) && (hz < 1000000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_128; // 703 kHz
+        } else if ((hz >= 1000000) && (hz < 3000000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_64;  // 1.41 MHz
+        } else if ((hz >= 3000000) && (hz < 5000000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_32;  // 2.81 MHz
+        } else if ((hz >= 5000000) && (hz < 11000000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_16;  // 5.63 MHz
+        } else if ((hz >= 11000000) && (hz < 22000000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_8;   // 11.25 MHz
+        } else if ((hz >= 22000000) && (hz < 45000000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_4;   // 22.5 MHz
+        } else { // >= 45000000
+            obj->br_presc = SPI_BAUDRATEPRESCALER_2;   // 45 MHz
+        }
+    }
+    // Values depend of PCLK1: 45 MHz
+    if ((obj->spi == SPI_2) || (obj->spi == SPI_3)) {
+        if (hz < 350000) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_256; // 176 kHz
+        } else if ((hz >= 350000) && (hz < 700000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_128; // 352 kHz
+        } else if ((hz >= 700000) && (hz < 1000000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_64;  // 703 kHz
+        } else if ((hz >= 1000000) && (hz < 3000000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_32;  // 1.41 MHz
+        } else if ((hz >= 3000000) && (hz < 5000000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_16;  // 2.81 MHz
+        } else if ((hz >= 5000000) && (hz < 11000000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_8;   // 5.63 MHz
+        } else if ((hz >= 11000000) && (hz < 22000000)) {
+            obj->br_presc = SPI_BAUDRATEPRESCALER_4;   // 11.25 MHz
+        } else { // >= 22000000
+            obj->br_presc = SPI_BAUDRATEPRESCALER_2;   // 22.5 MHz
+        }
+    }    
 #endif
     init_spi(obj);
 }
@@ -348,6 +391,25 @@ int spi_master_write(spi_t *obj, int value)
 {
     ssp_write(obj, value);
     return ssp_read(obj);
+}
+
+int spi_slave_receive(spi_t *obj)
+{
+    return ((ssp_readable(obj) && !ssp_busy(obj)) ? 1 : 0);
+};
+
+int spi_slave_read(spi_t *obj)
+{
+    SPI_TypeDef *spi = (SPI_TypeDef *)(obj->spi);
+    while (!ssp_readable(obj));
+    return (int)spi->DR;
+}
+
+void spi_slave_write(spi_t *obj, int value)
+{
+    SPI_TypeDef *spi = (SPI_TypeDef *)(obj->spi);
+    while (!ssp_writeable(obj));
+    spi->DR = (uint16_t)value;
 }
 
 int spi_busy(spi_t *obj)

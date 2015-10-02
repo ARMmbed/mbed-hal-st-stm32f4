@@ -1,7 +1,7 @@
 {
   "name": "mbed-hal-st-stm32f4",
-  "version": "0.3.0",
-  "description": "mbed HAL module for STM32F4 microcontrollers",
+  "version": "0.4.0",
+  "description": "mbed HAL module for STM32F4 microcontrollers (AST version)",
   "keywords": [],
   "author": "Brendan Moran <brendan.moran@arm.com>",
   "homepage": "https://github.com/ARMmbed/mbed-hal-st-stm32f4",
@@ -20,15 +20,18 @@
   ],
   "dependencies": {
     "uvisor-lib": "~0.7.0",
-    "mbed-hal-st-stm32cubef4": "~0.1.0",
+    "mbed-hal-st-stm32cubef4": "*",
     "mbed-hal": "*"
   },
   "targetDependencies": {
+    "stm32f401re": {
+      "mbed-hal-st-stm32f401re": "*"
+    },
     "stm32f429zi": {
       "mbed-hal-st-stm32f429zi": "~0.3.0"
     },
     "stm32f439zi": {
-      "mbed-hal-st-stm32f429zi": "~0.3.0"
+      "mbed-hal-st-stm32f439zi": "~0.3.0"
     }
   }
 }
