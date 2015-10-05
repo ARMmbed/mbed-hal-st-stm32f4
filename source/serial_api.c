@@ -86,46 +86,46 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
     // Enable USART clock
     switch (obj->uart) {
         case UART_1:
-            __HAL_RCC_USART1_CLK_ENABLE();
+            __USART1_CLK_ENABLE();
             obj->index = 0;
             break;
         case UART_2:
-            __HAL_RCC_USART2_CLK_ENABLE();
+            __USART2_CLK_ENABLE();
             obj->index = 1;
             break;
 #if defined(USART3_BASE)
         case UART_3:
-            __HAL_RCC_USART3_CLK_ENABLE();
+            __USART3_CLK_ENABLE();
             obj->index = 2;
             break;
 #endif
 #if defined(UART4_BASE)
         case UART_4:
-            __HAL_RCC_UART4_CLK_ENABLE();
+            __UART4_CLK_ENABLE();
             obj->index = 3;
             break;
 #endif
 #if defined(UART5_BASE)
         case UART_5:
-            __HAL_RCC_UART5_CLK_ENABLE();
+            __UART5_CLK_ENABLE();
             obj->index = 4;
             break;
 #endif
 #if defined(USART6_BASE)
         case UART_6:
-            __HAL_RCC_USART6_CLK_ENABLE();
+            __USART6_CLK_ENABLE();
             obj->index = 5;
             break;
 #endif
 #if defined(UART7_BASE)
         case UART_7:
-            __HAL_RCC_UART7_CLK_ENABLE();
+            __UART7_CLK_ENABLE();
             obj->index = 6;
             break;
 #endif
 #if defined(UART8_BASE)
         case UART_8:
-            __HAL_RCC_UART8_CLK_ENABLE();
+            __UART8_CLK_ENABLE();
             obj->index = 7;
             break;
 #endif
@@ -417,8 +417,9 @@ void serial_irq_set(serial_t *obj, SerialIrq irq, uint32_t enable)
             if ((UartHandle.Instance->CR1 & USART_CR1_RXNEIE) == 0) all_disabled = 1;
         }
 
-        if (all_disabled) vIRQ_DisableIRQ(irq_n);
-
+        if (all_disabled) {
+                vIRQ_DisableIRQ(irq_n);
+        }
     }
 }
 
