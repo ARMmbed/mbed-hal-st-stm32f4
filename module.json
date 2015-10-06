@@ -20,15 +20,15 @@
   ],
   "dependencies": {
     "uvisor-lib": "~0.8.0",
-    "mbed-hal-st-stm32cubef4": "~0.1.0",
+    "mbed-hal-st-stm32cubef4": "~0.2.0",
     "mbed-hal": "*"
   },
   "targetDependencies": {
     "stm32f429zi": {
-      "mbed-hal-st-stm32f429zi": "~0.3.0"
+      "mbed-hal-st-stm32f429zi": "~0.4.0"
     },
     "stm32f439zi": {
-      "mbed-hal-st-stm32f429zi": "~0.3.0"
+      "mbed-hal-st-stm32f429zi": "~0.4.0"
     }
   }
 }
