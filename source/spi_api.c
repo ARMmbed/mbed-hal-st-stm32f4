@@ -40,6 +40,28 @@
 #include "PeripheralPins.h"
 #include "target_config.h"
 
+#define DEBUG_STDIO 0
+
+#ifndef DEBUG_STDIO
+#   define DEBUG_STDIO 0
+#endif
+
+#if DEBUG_STDIO
+#   include <stdio.h>
+#   define DEBUG_PRINTF(...) do { printf(__VA_ARGS__); } while(0)
+#else
+#   define DEBUG_PRINTF(...) {}
+#endif
+
+typedef enum
+{
+    SPI_TRANSFER_TYPE_NONE = 0,
+    SPI_TRANSFER_TYPE_TX = 1,
+    SPI_TRANSFER_TYPE_RX = 2,
+    SPI_TRANSFER_TYPE_TXRX = 3,
+} transfer_type_t;
+
+
 static SPI_HandleTypeDef SpiHandle[MODULE_SIZE_SPI];
 static const IRQn_Type SpiIRQs[MODULE_SIZE_SPI] = {
     SPI1_IRQn,
@@ -144,6 +166,8 @@ void spi_init(spi_t *obj, PinName mosi, PinName miso, PinName sclk)
     handle->Init.NSS               = SPI_NSS_SOFT;
     handle->Init.TIMode            = SPI_TIMODE_DISABLED;
 
+    DEBUG_PRINTF("SPI%u: Init\n", obj->spi.module+1);
+
     init_spi(obj);
 }
 
@@ -199,6 +223,8 @@ void spi_free(spi_t *obj)
     pin_function(obj->spi.pin_miso, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
     pin_function(obj->spi.pin_mosi, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
     pin_function(obj->spi.pin_sclk, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
+
+    DEBUG_PRINTF("SPI%u: Free\n", obj->spi.module+1);
 }
 
 void spi_format(spi_t *obj, int bits, int mode, spi_bitorder_t order)
@@ -236,6 +262,8 @@ void spi_format(spi_t *obj, int bits, int mode, spi_bitorder_t order)
     } else {
         handle->Init.FirstBit = SPI_FIRSTBIT_LSB;
     }
+
+    DEBUG_PRINTF("SPI%u: Format: %u, %u, %u\n", obj->spi.module+1, bits, mode, order);
 
     init_spi(obj);
 }
@@ -346,6 +374,9 @@ void spi_frequency(spi_t *obj, int hz)
         }
     }
 #endif
+
+    DEBUG_PRINTF("SPI%u: Frequency: %u, 0x%x\n", obj->spi.module+1, hz, (unsigned int)handle->Init.BaudRatePrescaler);
+
     init_spi(obj);
 }
 
@@ -405,6 +436,56 @@ int spi_busy(spi_t *obj)
     return ssp_busy(obj);
 }
 
+/// @returns the number of bytes transferred, or `0` if nothing transferred
+static int spi_master_start_asynch_transfer(spi_t *obj, transfer_type_t transfer_type, void *tx, void *rx, size_t length)
+{
+#if DEBUG_STDIO
+    if (transfer_type != SPI_TRANSFER_TYPE_RX) DEBUG_PRINTF("SPI%u: Start: %u, %u\n", obj->spi.module+1, transfer_type, length);
+#endif
+    SPI_HandleTypeDef *handle = &SpiHandle[obj->spi.module];
+    obj->spi.transfer_type = transfer_type;
+
+    // enable the interrupt
+    IRQn_Type irq_n = SpiIRQs[obj->spi.module];
+    vIRQ_EnableIRQ(irq_n);
+
+    // enable the right hal transfer
+    static uint16_t fill = (uint16_t)SPI_FILL_WORD;
+    static uint16_t sink;
+    int rc = 0;
+    switch(transfer_type)
+    {
+        case SPI_TRANSFER_TYPE_TXRX:
+            rc = HAL_SPI_TransmitReceive_IT(handle, (uint8_t*)tx, (uint8_t*)rx, length);
+            break;
+
+        case SPI_TRANSFER_TYPE_TX:
+            // we do not use `HAL_SPI_Transmit_IT`, since it has some unknown bug
+            // and makes the HAL keep some state and then that fails successive transfers
+            rc = HAL_SPI_TransmitReceive_IT(handle, (uint8_t*)tx, (uint8_t*)&sink, 1);
+            length = 1;
+            break;
+
+        case SPI_TRANSFER_TYPE_RX:
+            // we do not use `HAL_SPI_Receive_IT`, since it sends 0x00 as default
+            // and that's not equal to `SPI_FILL_WORD` (0xff).
+            // So we have to do one byte transfers all the time.
+            rc = HAL_SPI_TransmitReceive_IT(handle, (uint8_t*)&fill, (uint8_t*)rx, 1);
+            length = 1;
+            break;
+
+        default:
+            length = 0;
+    }
+
+    if (rc) {
+        DEBUG_PRINTF("SPI%u: RC=%u\n", obj->spi.module+1, rc);
+        length = 0;
+    }
+
+    return length;
+}
+
 // asynchronous API
 void spi_master_transfer(spi_t *obj, void *tx, size_t tx_length, void *rx, size_t rx_length, uint32_t handler, uint32_t event, DMAUsage hint)
 {
@@ -436,11 +517,6 @@ void spi_master_transfer(spi_t *obj, void *tx, size_t tx_length, void *rx, size_
 
     obj->spi.event = event;
 
-    // register the thunking handler
-    IRQn_Type irq_n = SpiIRQs[obj->spi.module];
-    vIRQ_SetVector(irq_n, handler);
-    vIRQ_EnableIRQ(irq_n);
-
     // the HAL expects number of transfers instead of number of bytes
     // so for 16 bit transfer width the count needs to be halved
     if (is16bit) {
@@ -448,16 +524,21 @@ void spi_master_transfer(spi_t *obj, void *tx, size_t tx_length, void *rx, size_
         rx_length /= 2;
     }
 
+    DEBUG_PRINTF("SPI%u: Transfer: %u, %u\n", obj->spi.module+1, tx_length, rx_length);
+
+    // register the thunking handler
+    IRQn_Type irq_n = SpiIRQs[obj->spi.module];
+    vIRQ_SetVector(irq_n, handler);
+
     // enable the right hal transfer
     if (use_tx && use_rx) {
-        // TODO: should this really be min?
-        // There is no way to inform the user about the reduction in transfer size.
+        // transfer with the min(tx, rx), then later either transmit _or_ receive the remainder
         size_t size = (tx_length < rx_length)? tx_length : rx_length;
-        HAL_SPI_TransmitReceive_IT(handle, (uint8_t*)tx, (uint8_t*)rx, size);
+        spi_master_start_asynch_transfer(obj, SPI_TRANSFER_TYPE_TXRX, tx, rx, size);
     } else if (use_tx) {
-        HAL_SPI_Transmit_IT(handle, (uint8_t*)tx, tx_length);
+        spi_master_start_asynch_transfer(obj, SPI_TRANSFER_TYPE_TX, tx, NULL, tx_length);
     } else if (use_rx) {
-        HAL_SPI_Receive_IT(handle, (uint8_t*)rx, rx_length);
+        spi_master_start_asynch_transfer(obj, SPI_TRANSFER_TYPE_RX, NULL, rx, rx_length);
     }
 }
 
@@ -472,27 +553,34 @@ uint32_t spi_irq_handler_asynch(spi_t *obj)
 
     if (HAL_SPI_GetState(handle) == HAL_SPI_STATE_READY)
     {
-        // the transfer has definitely completed
-        event = SPI_EVENT_INTERNAL_TRANSFER_COMPLETE;
-        // diable interrupt
+        // disable interrupt
         vIRQ_DisableIRQ(SpiIRQs[obj->spi.module]);
+
+        // adjust buffer positions
+        size_t tx_size = (handle->TxXferSize - handle->TxXferCount);
+        size_t rx_size = (handle->RxXferSize - handle->RxXferCount);
+        // 16 bit transfers need to be doubled to get bytes
+        if (handle->Init.DataSize == SPI_DATASIZE_16BIT)
+        {
+            tx_size *= 2;
+            rx_size *= 2;
+        }
+        // adjust buffer positions
+        if (obj->spi.transfer_type != SPI_TRANSFER_TYPE_RX) {
+            obj->tx_buff.pos += tx_size;
+        }
+        if (obj->spi.transfer_type != SPI_TRANSFER_TYPE_TX) {
+            obj->rx_buff.pos += rx_size;
+        }
+
+        if (handle->TxXferCount > 0) DEBUG_PRINTF("SPI%u: TxXferCount: %u\n", obj->spi.module+1, handle->TxXferCount);
+        if (handle->RxXferCount > 0) DEBUG_PRINTF("SPI%u: RxXferCount: %u\n", obj->spi.module+1, handle->RxXferCount);
 
         int error = HAL_SPI_GetError(handle);
         if(error != HAL_SPI_ERROR_NONE)
         {
-            // adjust buffer positions
-            obj->tx_buff.pos = (handle->TxXferSize - handle->TxXferCount);
-            obj->rx_buff.pos = (handle->TxXferSize - handle->RxXferCount);
-
-            if (handle->Init.DataSize == SPI_DATASIZE_16BIT)
-            {
-                // 16 bit transfers need to be doubled to get bytes
-                obj->tx_buff.pos *= 2;
-                obj->rx_buff.pos *= 2;
-            }
-
-            // something went wrong
-            event |= SPI_EVENT_ERROR;
+            // something went wrong and the transfer has definitely completed
+            event = SPI_EVENT_ERROR | SPI_EVENT_INTERNAL_TRANSFER_COMPLETE;
 
             if (error & HAL_SPI_ERROR_OVR) {
                 // buffer overrun
@@ -500,13 +588,33 @@ uint32_t spi_irq_handler_asynch(spi_t *obj)
             }
         }
         else {
-            // everything is ok
-            event |= SPI_EVENT_COMPLETE;
-            // adjust buffer positions
-            obj->tx_buff.pos = obj->tx_buff.length;
-            obj->rx_buff.pos = handle->RxXferSize;
+            // figure out if we need to transfer more data:
+            if (obj->tx_buff.pos < obj->tx_buff.length) {
+                // DEBUG_PRINTF("t%u ", obj->tx_buff.pos);
+                // we need to transfer more data
+                spi_master_start_asynch_transfer(obj, SPI_TRANSFER_TYPE_TX,
+                    obj->tx_buff.buffer + obj->tx_buff.pos,     // offset the initial buffer by the position
+                    NULL,                                       // there is no receive buffer
+                    obj->tx_buff.length - obj->tx_buff.pos);    // transfer the remaining bytes only
+            }
+            else if (obj->rx_buff.pos < obj->rx_buff.length) {
+                // DEBUG_PRINTF("r%u ", obj->rx_buff.pos);
+                // we need to receive more data
+                spi_master_start_asynch_transfer(obj, SPI_TRANSFER_TYPE_RX,
+                    NULL,                                       // there is no transmit buffer
+                    obj->rx_buff.buffer + obj->rx_buff.pos,     // offset the initial buffer by the position
+                    obj->rx_buff.length - obj->rx_buff.pos);    // transfer one byte at a time, until we received everything
+            }
+            else {
+                // everything is ok, nothing else needs to be transferred
+                event = SPI_EVENT_COMPLETE | SPI_EVENT_INTERNAL_TRANSFER_COMPLETE;
+                // somehow this is needed, dunno why.
+                DEBUG_PRINTF("SPI%u: Done: %u, %u\n", obj->spi.module+1, obj->tx_buff.pos, obj->rx_buff.pos);
+            }
         }
     }
+
+    if (event) DEBUG_PRINTF("SPI%u: Event: 0x%x\n", obj->spi.module+1, event);
 
     return (event & (obj->spi.event | SPI_EVENT_INTERNAL_TRANSFER_COMPLETE));
 }
@@ -520,9 +628,6 @@ uint8_t spi_active(spi_t *obj)
     return -1;
 }
 
-// this function is private to the HAL, but we need to access it here anyway
-extern void SPI_TxCloseIRQHandler(SPI_HandleTypeDef *hspi);
-
 void spi_abort_asynch(spi_t *obj)
 {
     // diable interrupt
@@ -530,7 +635,10 @@ void spi_abort_asynch(spi_t *obj)
 
     // clean-up
     SPI_HandleTypeDef *handle = &SpiHandle[obj->spi.module];
-    SPI_TxCloseIRQHandler(handle);
+    __HAL_SPI_DISABLE(handle);
+    HAL_SPI_DeInit(handle);
+    HAL_SPI_Init(handle);
+    __HAL_SPI_ENABLE(handle);
 }
 
 #endif
