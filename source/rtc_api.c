@@ -54,17 +54,17 @@ void rtc_init(void)
     HAL_PWR_EnableBkUpAccess();
 
     // Reset Backup domain
-    __BACKUPRESET_FORCE();
-    __BACKUPRESET_RELEASE();
+    __HAL_RCC_BACKUPRESET_FORCE();
+    __HAL_RCC_BACKUPRESET_RELEASE();
 
     // Enable LSE Oscillator
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_NONE; /* Mandatory, otherwise the PLL is reconfigured! */
     RCC_OscInitStruct.LSEState       = RCC_LSE_ON; /* External 32.768 kHz clock on OSC_IN/OSC_OUT */
-    if (OscConfig(&RCC_OscInitStruct) == HAL_OK) {
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) == HAL_OK) {
         // Connect LSE to RTC
-        __RTC_CLKPRESCALER(RCC_RTCCLKSOURCE_LSE);
-        __RTC_CONFIG(RCC_RTCCLKSOURCE_LSE);
+        __HAL_RCC_RTC_CLKPRESCALER(RCC_RTCCLKSOURCE_LSE);
+        __HAL_RCC_RTC_CONFIG(RCC_RTCCLKSOURCE_LSE);
         rtc_freq = LSE_VALUE;
     } else {
         // Enable LSI clock
@@ -72,18 +72,18 @@ void rtc_init(void)
         RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_NONE; // Mandatory, otherwise the PLL is reconfigured!
         RCC_OscInitStruct.LSEState       = RCC_LSE_OFF;
         RCC_OscInitStruct.LSIState       = RCC_LSI_ON;
-        if (OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+        if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
             error("RTC error: LSI clock initialization failed.");
         }
         // Connect LSI to RTC
-        __RTC_CLKPRESCALER(RCC_RTCCLKSOURCE_LSI);
-        __RTC_CONFIG(RCC_RTCCLKSOURCE_LSI);
+        __HAL_RCC_RTC_CLKPRESCALER(RCC_RTCCLKSOURCE_LSI);
+        __HAL_RCC_RTC_CONFIG(RCC_RTCCLKSOURCE_LSI);
         // [TODO] This value is LSI typical value. To be measured precisely using a timer input capture
         rtc_freq = LSI_VALUE;
     }
 
     // Enable RTC
-    __RTC_ENABLE();
+    __HAL_RCC_RTC_ENABLE();
 
     RtcHandle.Init.HourFormat     = RTC_HOURFORMAT_24;
     RtcHandle.Init.AsynchPrediv   = 127;
@@ -106,8 +106,8 @@ void rtc_free(void)
     HAL_PWR_EnableBkUpAccess();
 
     // Reset Backup domain
-    __BACKUPRESET_FORCE();
-    __BACKUPRESET_RELEASE();
+    __HAL_RCC_BACKUPRESET_FORCE();
+    __HAL_RCC_BACKUPRESET_RELEASE();
 
     // Disable access to Backup domain
     HAL_PWR_DisableBkUpAccess();
@@ -118,7 +118,7 @@ void rtc_free(void)
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_NONE;
     RCC_OscInitStruct.LSIState       = RCC_LSI_OFF;
     RCC_OscInitStruct.LSEState       = RCC_LSE_OFF;
-    OscConfig(&RCC_OscInitStruct);
+    HAL_RCC_OscConfig(&RCC_OscInitStruct);
 
     rtc_inited = 0;
 }

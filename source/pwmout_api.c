@@ -170,7 +170,7 @@ void pwmout_period_us(pwmout_t* obj, int us)
 
     // Get clock configuration
     // Note: PclkFreq contains here the Latency (not used after)
-    GetClockConfig(&RCC_ClkInitStruct, &PclkFreq);
+    HAL_RCC_GetClockConfig(&RCC_ClkInitStruct, &PclkFreq);
 
     // Get the PCLK and APBCLK divider related to the timer
     switch (obj->pwm) {
@@ -189,7 +189,7 @@ void pwmout_period_us(pwmout_t* obj, int us)
 #if defined(TIM14_BASE)
         case PWM_14:
 #endif
-            PclkFreq = GetPCLK1Freq();
+            PclkFreq = HAL_RCC_GetPCLK1Freq();
             APBxCLKDivider = RCC_ClkInitStruct.APB1CLKDivider;
             break;
         
@@ -201,7 +201,7 @@ void pwmout_period_us(pwmout_t* obj, int us)
         case PWM_9:
         case PWM_10:
         case PWM_11:
-            PclkFreq = GetPCLK2Freq();
+            PclkFreq = HAL_RCC_GetPCLK2Freq();
             APBxCLKDivider = RCC_ClkInitStruct.APB2CLKDivider;
             break;
         default:
