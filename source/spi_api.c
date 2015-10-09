@@ -431,9 +431,7 @@ int spi_busy(spi_t *obj)
 /// @returns the number of bytes transferred, or `0` if nothing transferred
 static int spi_master_start_asynch_transfer(spi_t *obj, transfer_type_t transfer_type, void *tx, void *rx, size_t length)
 {
-#if DEBUG_STDIO
-    if (transfer_type != SPI_TRANSFER_TYPE_RX) DEBUG_PRINTF("SPI%u: Start: %u, %u\n", obj->spi.module+1, transfer_type, length);
-#endif
+    if (transfer_type != SPI_TRANSFER_TYPE_TX) DEBUG_PRINTF("SPI%u: Start: %u, %u\n", obj->spi.module+1, transfer_type, length);
     SPI_HandleTypeDef *handle = &SpiHandle[obj->spi.module];
     obj->spi.transfer_type = transfer_type;
 
@@ -456,8 +454,9 @@ static int spi_master_start_asynch_transfer(spi_t *obj, transfer_type_t transfer
             rc = HAL_SPI_TransmitReceive_IT(handle, (uint8_t*)tx, (uint8_t*)rx, words);
             break;
         case SPI_TRANSFER_TYPE_TX:
-            // we do not use `HAL_SPI_Transmit_IT`, since it has some unknown bug
+            // TODO: we do not use `HAL_SPI_Transmit_IT`, since it has some unknown bug
             // and makes the HAL keep some state and then that fails successive transfers
+            // rc = HAL_SPI_Transmit_IT(handle, (uint8_t*)tx, words);
             rc = HAL_SPI_TransmitReceive_IT(handle, (uint8_t*)tx, (uint8_t*)&sink, 1);
             length = is16bit ? 2 : 1;
             break;
