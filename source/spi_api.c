@@ -597,10 +597,16 @@ uint32_t spi_irq_handler_asynch(spi_t *obj)
 uint8_t spi_active(spi_t *obj)
 {
     SPI_HandleTypeDef *handle = &SpiHandle[obj->spi.module];
-    if (HAL_SPI_GetState(handle) == HAL_SPI_STATE_READY) {
-        return 0;
+    HAL_SPI_StateTypeDef state = HAL_SPI_GetState(handle);
+
+    switch(state) {
+        case HAL_SPI_STATE_RESET:
+        case HAL_SPI_STATE_READY:
+        case HAL_SPI_STATE_ERROR:
+            return 0;
+        default:
+            return -1;
     }
-    return -1;
 }
 
 void spi_abort_asynch(spi_t *obj)
