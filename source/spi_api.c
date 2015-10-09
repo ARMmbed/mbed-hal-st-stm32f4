@@ -35,6 +35,7 @@
 
 #include <math.h>
 #include <stdbool.h>
+#include <string.h>
 #include "cmsis.h"
 #include "pinmap.h"
 #include "PeripheralPins.h"
@@ -445,33 +446,38 @@ static int spi_master_start_asynch_transfer(spi_t *obj, transfer_type_t transfer
     SPI_HandleTypeDef *handle = &SpiHandle[obj->spi.module];
     obj->spi.transfer_type = transfer_type;
 
+    bool is16bit = (handle->Init.DataSize == SPI_DATASIZE_16BIT);
+    // the HAL expects number of transfers instead of number of bytes
+    // so for 16 bit transfer width the count needs to be halved
+    size_t words;
+    if (is16bit) words = length / 2;
+    else         words = length;
+
     // enable the interrupt
     IRQn_Type irq_n = SpiIRQs[obj->spi.module];
     vIRQ_EnableIRQ(irq_n);
 
     // enable the right hal transfer
-    static uint16_t fill = (uint16_t)SPI_FILL_WORD;
     static uint16_t sink;
     int rc = 0;
     switch(transfer_type)
     {
         case SPI_TRANSFER_TYPE_TXRX:
-            rc = HAL_SPI_TransmitReceive_IT(handle, (uint8_t*)tx, (uint8_t*)rx, length);
+            rc = HAL_SPI_TransmitReceive_IT(handle, (uint8_t*)tx, (uint8_t*)rx, words);
             break;
 
         case SPI_TRANSFER_TYPE_TX:
             // we do not use `HAL_SPI_Transmit_IT`, since it has some unknown bug
             // and makes the HAL keep some state and then that fails successive transfers
             rc = HAL_SPI_TransmitReceive_IT(handle, (uint8_t*)tx, (uint8_t*)&sink, 1);
-            length = 1;
+            length = is16bit ? 2 : 1;
             break;
 
         case SPI_TRANSFER_TYPE_RX:
-            // we do not use `HAL_SPI_Receive_IT`, since it sends 0x00 as default
-            // and that's not equal to `SPI_FILL_WORD` (0xff).
-            // So we have to do one byte transfers all the time.
-            rc = HAL_SPI_TransmitReceive_IT(handle, (uint8_t*)&fill, (uint8_t*)rx, 1);
-            length = 1;
+            // the receive function also "transmits" the receive buffer so in order
+            // to guarantee that 0xff is on the line, we explicitly memset it here
+            memset(rx, SPI_FILL_WORD, length);
+            rc = HAL_SPI_Receive_IT(handle, (uint8_t*)rx, words);
             break;
 
         default:
@@ -517,13 +523,6 @@ void spi_master_transfer(spi_t *obj, void *tx, size_t tx_length, void *rx, size_
 
     obj->spi.event = event;
 
-    // the HAL expects number of transfers instead of number of bytes
-    // so for 16 bit transfer width the count needs to be halved
-    if (is16bit) {
-        tx_length /= 2;
-        rx_length /= 2;
-    }
-
     DEBUG_PRINTF("SPI%u: Transfer: %u, %u\n", obj->spi.module+1, tx_length, rx_length);
 
     // register the thunking handler
@@ -553,9 +552,6 @@ uint32_t spi_irq_handler_asynch(spi_t *obj)
 
     if (HAL_SPI_GetState(handle) == HAL_SPI_STATE_READY)
     {
-        // disable interrupt
-        vIRQ_DisableIRQ(SpiIRQs[obj->spi.module]);
-
         // adjust buffer positions
         size_t tx_size = (handle->TxXferSize - handle->TxXferCount);
         size_t rx_size = (handle->RxXferSize - handle->RxXferCount);
