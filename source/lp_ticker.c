@@ -38,16 +38,23 @@ void lp_ticker_init(void) {
         __TIM2_CLK_ENABLE();
         __TIM2_FORCE_RESET();
         __TIM2_RELEASE_RESET();
-
+	
         // Update the SystemCoreClock variable
         SystemCoreClockUpdate();
-
+	
         // Configure time base
         TimMasterHandle.Instance = TIM2;
         TimMasterHandle.Init.Period            = 0xFFFFFFFF;
-	/* betzw - NOTE: having a 16-bit prescaler, beyond settuings work only for system clock 
-	                 frequencies (i.e. HCLK) below 65.536.000Hz!!! */
-        TimMasterHandle.Init.Prescaler         = (uint32_t)(SystemCoreClock / 1000) - 1; // 1 ms tick
+	if((uint32_t)(SystemCoreClock / 1000) <= 0xFFFFU) {
+		/* betzw: having a 16-bit prescaler, beyond settings work only for system clock 
+		          frequencies (i.e. HCLK) below 65.536.000Hz!!! */
+		TimMasterHandle.Init.Prescaler = (uint32_t)(SystemCoreClock / 1000) - 1; // 1 ms tick
+        } else {
+		/* betzw: lowest possible frequency, i.e. (SystemCoreClock / 65536)
+		          which e.g. means for a system clock of 84.000.000Hz a 
+                          counter frequency of 1282Hz, i.e. a 780 us tick */
+		TimMasterHandle.Init.Prescaler = 0xFFFFU;
+        }
         TimMasterHandle.Init.ClockDivision     = 0;
         TimMasterHandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
         TimMasterHandle.Init.RepetitionCounter = 0;
