@@ -52,15 +52,4 @@ void mbed_exit_sleep(sleep_t *obj)
     __HAL_TIM_ENABLE_IT(&obj->TimMasterHandle, TIM_IT_CC2);
 }
 
-#if 0 // betzw: original mbed 2.0 code
-void deepsleep(void)
-{
-    // Request to enter STOP mode with regulator in low power mode
-    HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
-
-    // After wake-up from STOP reconfigure the PLL
-    SetSysClock();
-}
-#endif // 0
-
 #endif

@@ -423,25 +423,6 @@ int spi_master_write(spi_t *obj, int value)
     return ssp_read(obj);
 }
 
-int spi_slave_receive(spi_t *obj)
-{
-    return ((ssp_readable(obj) && !ssp_busy(obj)) ? 1 : 0);
-};
-
-int spi_slave_read(spi_t *obj)
-{
-    SPI_TypeDef *spi = (SPI_TypeDef *)(obj->spi);
-    while (!ssp_readable(obj));
-    return (int)spi->DR;
-}
-
-void spi_slave_write(spi_t *obj, int value)
-{
-    SPI_TypeDef *spi = (SPI_TypeDef *)(obj->spi);
-    while (!ssp_writeable(obj));
-    spi->DR = (uint16_t)value;
-}
-
 int spi_busy(spi_t *obj)
 {
     return ssp_busy(obj);
