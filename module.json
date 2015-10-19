@@ -1,8 +1,11 @@
 {
   "name": "mbed-hal-st-stm32f4",
-  "version": "0.5.1",
+  "version": "1.0.0",
   "description": "mbed HAL module for STM32F4 microcontrollers",
-  "keywords": [],
+  "keywords": [
+    "mbed",
+    "mbed-official"
+  ],
   "author": "Brendan Moran <brendan.moran@arm.com>",
   "homepage": "https://github.com/ARMmbed/mbed-hal-st-stm32f4",
   "licenses": [
@@ -28,10 +31,10 @@
       "mbed-hal-st-stm32f401re": "*"
     },
     "stm32f429zi": {
-      "mbed-hal-st-stm32f429zi": "~0.4.0"
+      "mbed-hal-st-stm32f429zi": "^1.0.0"
     },
     "stm32f439zi": {
-      "mbed-hal-st-stm32f429zi": "~0.4.0"
+      "mbed-hal-st-stm32f429zi": "^1.0.0"
     }
   }
 }
