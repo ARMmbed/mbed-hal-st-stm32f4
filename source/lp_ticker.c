@@ -52,7 +52,7 @@ void lp_ticker_init(void) {
         } else {
 		/* betzw: lowest possible frequency, i.e. (SystemCoreClock / 65536)
 		          which e.g. means for a system clock of 84.000.000Hz a 
-                          counter frequency of 1282Hz, i.e. a 780 us tick */
+                          counter frequency of ~1282Hz, i.e. a ~780 us tick */
 		TimMasterHandle.Init.Prescaler = 0xFFFFU;
         }
         TimMasterHandle.Init.ClockDivision     = 0;
