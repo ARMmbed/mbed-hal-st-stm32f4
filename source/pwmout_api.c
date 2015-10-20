@@ -33,7 +33,7 @@
 
 #include "cmsis.h"
 #include "pinmap.h"
-#include "mbed_error.h"
+#include "mbed-drivers/mbed_error.h"
 #include "PeripheralPins.h"
 
 static TIM_HandleTypeDef TimHandle;
@@ -174,7 +174,7 @@ void pwmout_period_us(pwmout_t* obj, int us)
     SystemCoreClockUpdate();
 
     TimHandle.Init.Period        = us - 1;
-    TimHandle.Init.Prescaler     = (uint16_t)(SystemCoreClock / 1000000) - 1; // 1 µs tick
+    TimHandle.Init.Prescaler     = (uint16_t)(SystemCoreClock / 1000000) - 1; // 1 ï¿½s tick
     TimHandle.Init.ClockDivision = 0;
     TimHandle.Init.CounterMode   = TIM_COUNTERMODE_UP;
     HAL_TIM_PWM_Init(&TimHandle);
