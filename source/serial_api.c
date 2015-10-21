@@ -37,7 +37,7 @@
 #include "pinmap.h"
 #include <string.h>
 #include "PeripheralPins.h"
-#include "mbed_error.h"
+#include "mbed-drivers/mbed_error.h"
 
 #define UART_NUM (8)
 

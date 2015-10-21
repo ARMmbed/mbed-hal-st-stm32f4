@@ -326,6 +326,10 @@ void i2c_reset(i2c_t *obj)
 
 void i2c_slave_address(i2c_t *obj, int idx, uint32_t address, uint32_t mask)
 {
+    // betzw: avoid warnings
+    (void)idx;
+    (void)mask;
+
     I2C_TypeDef *i2c = (I2C_TypeDef *)(obj->i2c);
     uint16_t tmpreg = 0;
 
@@ -341,6 +345,9 @@ void i2c_slave_address(i2c_t *obj, int idx, uint32_t address, uint32_t mask)
 
 void i2c_slave_mode(i2c_t *obj, int enable_slave)
 {
+    // betzw: avoid warnings
+    (void)obj;
+
     I2cHandle.Instance = (I2C_TypeDef *)(obj->i2c);
     if (enable_slave) {
         obj->slave = 1;
@@ -358,6 +365,9 @@ void i2c_slave_mode(i2c_t *obj, int enable_slave)
 int i2c_slave_receive(i2c_t *obj)
 {
     int retValue = NoData;
+
+    // betzw: avoid warnings
+    (void)obj;
 
     if (__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_BUSY) == 1) {
         if (__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_ADDR) == 1) {
