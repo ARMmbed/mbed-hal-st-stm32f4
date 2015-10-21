@@ -42,10 +42,17 @@ void lp_ticker_init(void) {
         // Update the SystemCoreClock variable
         SystemCoreClockUpdate();
 
-        // Configure time base
+        /* Timer2 is connected to APB1 which has a max frequency restriction of fCPUmax / 4
+         * however, for APB1 prescaler != 1, this frequency is doubled for the timers clock inputs
+         * so: This means the timer input frequency is `SystemCoreClock / 2`.
+         *
+         * ATTENTION: We need to use 0.5ms tick resolution, because the timer only has a 16bit prescaler.
+         * and since 90MHz / 1000 > 2^16, we need to use double speed (ie. half prescaler).
+         * MAKE SURE `MINAR_PLATFORM_TIME_BASE` in the target configuration is set to `2000`!
+         */
         TimMasterHandle.Instance = TIM2;
         TimMasterHandle.Init.Period            = 0xFFFFFFFF;
-        TimMasterHandle.Init.Prescaler         = (uint32_t)(SystemCoreClock / 1000000000) - 1; // 1 ms tick
+        TimMasterHandle.Init.Prescaler         = (uint32_t)((SystemCoreClock / 2) / 2000) - 1;
         TimMasterHandle.Init.ClockDivision     = 0;
         TimMasterHandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
         TimMasterHandle.Init.RepetitionCounter = 0;
