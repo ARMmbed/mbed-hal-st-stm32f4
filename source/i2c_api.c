@@ -27,7 +27,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************
  */
-#include "mbed_assert.h"
+#include "mbed-drivers/mbed_assert.h"
 #include "i2c_api.h"
 
 #if DEVICE_I2C

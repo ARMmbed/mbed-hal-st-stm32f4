@@ -28,7 +28,7 @@
  *******************************************************************************
  */
 #include "uvisor-lib/uvisor-lib.h"
-#include "mbed_assert.h"
+#include "mbed-drivers/mbed_assert.h"
 #include "spi_api.h"
 
 #if DEVICE_SPI

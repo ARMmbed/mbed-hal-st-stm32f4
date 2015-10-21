@@ -31,7 +31,7 @@
 
 #include "cmsis.h"
 #include "pinmap.h"
-#include "mbed_error.h"
+#include "mbed-drivers/mbed_error.h"
 #include "stm32f4xx_hal.h"
 #include "PeripheralPins.h"
 

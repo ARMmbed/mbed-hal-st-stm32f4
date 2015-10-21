@@ -25,12 +25,12 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "mbed_assert.h"
+#include "mbed-drivers/mbed_assert.h"
 #include "analogin_api.h"
 
 #if DEVICE_ANALOGIN
 
-#include "wait_api.h"
+#include "mbed-drivers/wait_api.h"
 #include "cmsis.h"
 #include "pinmap.h"
 #include "PeripheralPins.h"

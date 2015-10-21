@@ -33,7 +33,7 @@
 
 #include "cmsis.h"
 #include "pinmap.h"
-#include "mbed_error.h"
+#include "mbed-drivers/mbed_error.h"
 #include "PeripheralPins.h"
 
 static TIM_HandleTypeDef TimHandle;

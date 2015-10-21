@@ -30,7 +30,7 @@
 #ifndef MBED_GPIO_OBJECT_H
 #define MBED_GPIO_OBJECT_H
 
-#include "mbed_assert.h"
+#include "mbed-drivers/mbed_assert.h"
 #include "cmsis.h"
 #include "PortNames.h"
 #include "PeripheralNames.h"
