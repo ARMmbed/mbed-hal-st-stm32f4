@@ -42,17 +42,28 @@ void lp_ticker_init(void) {
         // Update the SystemCoreClock variable
         SystemCoreClockUpdate();
 
-        /* Timer2 is connected to APB1 which has a max frequency restriction of fCPUmax / 4
-         * however, for APB1 prescaler != 1, this frequency is doubled for the timers clock inputs
-         * so: This means the timer input frequency is `SystemCoreClock / 2`.
+        /* Timer2 is connected to APB1 which has a max frequency restriction and might therefore
+         * not run at CPU speeds.
          *
-         * ATTENTION: We need to use 0.5ms tick resolution, because the timer only has a 16bit prescaler.
-         * and since 90MHz / 1000 > 2^16, we need to use double speed (ie. half prescaler).
+         * ATTENTION: Since the timer only has a 16bit prescaler a 1ms tick resolution would mean
+         * a max input clock speed of ~65MHz.
+         * We want to use faster speeds, so we use 0.5ms tick for a max. of ~131MHz.
          * MAKE SURE `MINAR_PLATFORM_TIME_BASE` in the target configuration is set to `2000`!
          */
-        TimMasterHandle.Instance = TIM2;
+        // Get clock configuration
+        RCC_ClkInitTypeDef RCC_ClkInitStruct;
+        uint32_t PclkFreq;
+        // Note: PclkFreq contains here the Latency (not used after)
+        HAL_RCC_GetClockConfig(&RCC_ClkInitStruct, &PclkFreq);
+        // Get TIM1 clock value
+        PclkFreq = HAL_RCC_GetPCLK1Freq();
+        // TIMxCLK = PCLKx when the APB prescaler = 1 else TIMxCLK = 2 * PCLKx
+        if (RCC_ClkInitStruct.APB1CLKDivider != RCC_HCLK_DIV1) {
+            PclkFreq *= 2;
+        }
+        TimMasterHandle.Instance               = TIM2;
         TimMasterHandle.Init.Period            = 0xFFFFFFFF;
-        TimMasterHandle.Init.Prescaler         = (uint32_t)((SystemCoreClock / 2) / 2000) - 1;
+        TimMasterHandle.Init.Prescaler         = (uint32_t)(PclkFreq / 2000) - 1; // 0.5 ms tick
         TimMasterHandle.Init.ClockDivision     = 0;
         TimMasterHandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
         TimMasterHandle.Init.RepetitionCounter = 0;
