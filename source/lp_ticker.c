@@ -41,9 +41,19 @@ void lp_ticker_init(void) {
         __TIM2_CLK_ENABLE();
         __TIM2_FORCE_RESET();
         __TIM2_RELEASE_RESET();
-	
+
+        // Update the SystemCoreClock variable
+        SystemCoreClockUpdate();
+
+        /* Timer2 is connected to APB1 which has a max frequency restriction and might therefore
+         * not run at CPU speeds.
+         *
+         * ATTENTION: Since the timer only has a 16bit prescaler a 1ms tick resolution would mean
+         * a max input clock speed of ~65MHz.
+         * We want to use faster speeds, so we use 0.5ms tick for a max. of ~131MHz.
+         * MAKE SURE `MINAR_PLATFORM_TIME_BASE` in the target configuration is set to `2000`!
+         */
 	// Get clock configuration
-	// Note: TimClk contains here the Latency (not used after)
 	HAL_RCC_GetClockConfig(&RCC_ClkInitStruct, &TimClk);
 	
 	// Get TIM2 clock value
@@ -52,7 +62,7 @@ void lp_ticker_init(void) {
 	// TIMxCLK = PCLKx when the APB prescaler = 1 else TIMxCLK = 2 * PCLKx
 	if (RCC_ClkInitStruct.APB1CLKDivider == RCC_HCLK_DIV2)
 		TimClk *= 2;
-  
+
         // Configure time base
         TimMasterHandle.Instance = TIM2;
         TimMasterHandle.Init.Period            = 0xFFFFFFFF;
