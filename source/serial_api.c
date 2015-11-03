@@ -174,6 +174,8 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
     }
     handle->Init.HwFlowCtl      = UART_HWCONTROL_NONE;
     handle->Init.OverSampling   = UART_OVERSAMPLING_16;
+    handle->TxXferCount         = 0;
+    handle->RxXferCount         = 0;
 
     HAL_UART_Init(handle);
 
@@ -262,7 +264,7 @@ void serial_format(serial_t *obj, int data_bits, SerialParity parity, int stop_b
 {
     UART_HandleTypeDef *handle = &UartHandle[obj->serial.module];
 
-    if (data_bits == 9) {
+    if (data_bits > 8) {
         handle->Init.WordLength = UART_WORDLENGTH_9B;
     } else {
         handle->Init.WordLength = UART_WORDLENGTH_8B;
@@ -521,10 +523,34 @@ int serial_tx_asynch(serial_t *obj, void *tx, size_t tx_length, uint8_t tx_width
     vIRQ_EnableIRQ(irq_n);
 
     UART_HandleTypeDef *handle = &UartHandle[obj->serial.module];
-    HAL_StatusTypeDef rc = HAL_UART_Transmit_IT(handle, tx, tx_length);
-    DEBUG_PRINTF("UART%u: Tx: %u=(%u, %u) %x\n", obj->serial.module+1, rc, tx_length, tx_width, HAL_UART_GetState(handle));
+    // HAL_StatusTypeDef rc = HAL_UART_Transmit_IT(handle, tx, tx_length);
 
-    return (rc == HAL_OK) ? tx_length : 0;
+    // manually implemented HAL_UART_Transmit_IT for tighter control of what it does
+    handle->pTxBuffPtr = tx;
+    handle->TxXferSize = tx_length;
+    handle->TxXferCount = tx_length;
+
+    if(handle->State == HAL_UART_STATE_BUSY_RX) {
+        handle->State = HAL_UART_STATE_BUSY_TX_RX;
+    } else {
+        handle->State = HAL_UART_STATE_BUSY_TX;
+    }
+
+    // if the TX register is empty, directly input the first transmit byte
+    if (__HAL_UART_GET_FLAG(handle, UART_FLAG_TXE)) {
+        handle->Instance->DR = *handle->pTxBuffPtr++;
+        handle->TxXferCount--;
+    }
+    // chose either the tx reg empty or if last byte wait directly for tx complete
+    if (handle->TxXferCount != 0) {
+        handle->Instance->CR1 |= USART_CR1_TXEIE;
+    } else {
+        handle->Instance->CR1 |= USART_CR1_TCIE;
+    }
+
+    DEBUG_PRINTF("UART%u: Tx: 0=(%u, %u) %x\n", obj->serial.module+1, tx_length, tx_width, HAL_UART_GetState(handle));
+
+    return tx_length;
 }
 
 void serial_rx_asynch(serial_t *obj, void *rx, size_t rx_length, uint8_t rx_width, uint32_t handler, uint32_t event, uint8_t char_match, DMAUsage hint)
@@ -547,83 +573,92 @@ void serial_rx_asynch(serial_t *obj, void *rx, size_t rx_length, uint8_t rx_widt
     obj->serial.char_match = char_match;
 
     UART_HandleTypeDef *handle = &UartHandle[obj->serial.module];
-    // clear all pending flags
-    (void) handle->Instance->DR;
-    __HAL_UART_DISABLE_IT(handle, UART_IT_RXNE);
-    __HAL_UART_DISABLE_IT(handle, UART_IT_ERR);
-    __HAL_UART_CLEAR_PEFLAG(handle);
-    // re-enable the receiver now
-    handle->Instance->CR1 |= USART_CR1_RE;
-
     // register the thunking handler
     vIRQ_SetVector(irq_n, handler);
     vIRQ_EnableIRQ(irq_n);
 
-    HAL_StatusTypeDef rc = HAL_UART_Receive_IT(handle, rx, rx_length);
-    (void) rc;
-    DEBUG_PRINTF("UART%u: Rx: %u=(%u, %u, %u) %x\n", obj->serial.module+1, rc, rx_length, rx_width, char_match, HAL_UART_GetState(handle));
-}
+    // HAL_StatusTypeDef rc = HAL_UART_Receive_IT(handle, rx, rx_length);
 
-static int uart7_calls = 0;
+    handle->pRxBuffPtr = rx;
+    handle->RxXferSize = rx_length;
+    handle->RxXferCount = rx_length;
+
+    if(handle->State == HAL_UART_STATE_BUSY_TX) {
+        handle->State = HAL_UART_STATE_BUSY_TX_RX;
+    } else {
+        handle->State = HAL_UART_STATE_BUSY_RX;
+    }
+
+    __HAL_UART_CLEAR_PEFLAG(handle);
+    handle->Instance->CR1 |= USART_CR1_RXNEIE | USART_CR1_PEIE;
+    handle->Instance->CR3 |= USART_CR3_EIE;
+
+    DEBUG_PRINTF("UART%u: Rx: 0=(%u, %u, %u) %x\n", obj->serial.module+1, rx_length, rx_width, char_match, HAL_UART_GetState(handle));
+}
 
 int serial_irq_handler_asynch(serial_t *obj)
 {
     UART_HandleTypeDef *handle = &UartHandle[obj->serial.module];
 
-    HAL_UART_StateTypeDef previousState = HAL_UART_GetState(handle);
-    HAL_UART_IRQHandler(handle);
-    HAL_UART_StateTypeDef currentState = HAL_UART_GetState(handle);
-    HAL_UART_StateTypeDef stateDifference = previousState ^ currentState;
-
-    uint32_t error = HAL_UART_GetError(handle);
+    int status = handle->Instance->SR;
+    int data = handle->Instance->DR;
     int event = 0;
 
-    if (obj->serial.module == 6) {
-        uart7_calls++;
+    if (status & USART_SR_PE) {
+        event |= SERIAL_EVENT_RX_PARITY_ERROR;
+    }
+    if (status & (USART_SR_NE | USART_SR_FE)) {
+        event |= SERIAL_EVENT_RX_FRAMING_ERROR;
+    }
+    if (status & USART_SR_ORE) {
+        event |= SERIAL_EVENT_RX_OVERRUN_ERROR;
     }
 
-    if (error) {
-        if (error & HAL_UART_ERROR_PE) {
-            event |= SERIAL_EVENT_RX_PARITY_ERROR;
-        }
-        if (error & (HAL_UART_ERROR_NE | HAL_UART_ERROR_FE)) {
-            event |= SERIAL_EVENT_RX_FRAMING_ERROR;
-            if (obj->serial.module == 6) printf("FE %i\n", uart7_calls);
-        }
-        if (error & HAL_UART_ERROR_ORE) {
-            event |= SERIAL_EVENT_RX_OVERRUN_ERROR;;
-        }
-        __HAL_UART_CLEAR_PEFLAG(handle);
-    }
-
-    // check if we have stopped receiving
-    if (stateDifference & 0x20) {
-        // we stopped receiving, update buffer position
-        obj->rx_buff.pos = (void*)handle->pRxBuffPtr - obj->rx_buff.buffer;
-        event |= SERIAL_EVENT_RX_COMPLETE;
-        // disable receiver completely, otherwise an Overrun Error will occur...
-        handle->Instance->CR1 &= ~(USART_CR1_RE | USART_CR1_RXNEIE);
-        handle->Instance->CR3 &= ~USART_CR3_EIE;
-        __HAL_UART_CLEAR_PEFLAG(handle);
-    }
-
-    // check if we have stopped transmitting
-    if (stateDifference & 0x10) {
-        // we stopped transmitting, update buffer position
-        obj->tx_buff.pos = (void*)handle->pTxBuffPtr - obj->tx_buff.buffer;
+    if ((status & USART_SR_TC) && (handle->State & 0x10)) {
+        // transmission is finally complete
+        handle->Instance->CR1 &= ~USART_CR1_TCIE;
+        // set event tx complete
         event |= SERIAL_EVENT_TX_COMPLETE;
-    }
-
-    // check for character match, only when we are receiving or have just finished receiving
-    if ((obj->serial.char_match != SERIAL_RESERVED_CHAR_MATCH) && ((previousState | currentState) & 0x20)) {
-        // check if the last received char is a match
-        if ( *(handle->pTxBuffPtr - 1) == obj->serial.char_match) {
-            if (!error) event |= SERIAL_EVENT_RX_CHARACTER_MATCH;
+        // update handle state
+        if(handle->State == HAL_UART_STATE_BUSY_TX_RX) {
+            handle->State = HAL_UART_STATE_BUSY_RX;
+        } else {
+            handle->State = HAL_UART_STATE_READY;
         }
     }
+    else if ((status & USART_SR_TXE) && handle->TxXferCount) {
+        // chose either the tx reg empty or if last byte wait directly for tx complete
+        if (--handle->TxXferCount == 0) {
+            handle->Instance->CR1 &= ~USART_CR1_TXEIE;
+            handle->Instance->CR1 |= USART_CR1_TCIE;
+        }
+        // copy new data into transmit register
+        handle->Instance->DR = (uint8_t)*handle->pTxBuffPtr++;
+        obj->tx_buff.pos++;
+    }
 
-    if (stateDifference || error) {
-        DEBUG_PRINTF("UART%u: IRQ: %x ^ %x = %x, %x, %x\n", obj->serial.module+1, previousState, currentState, stateDifference, error, (unsigned int)event);
+    if ((status & USART_SR_RXNE) && handle->RxXferCount) {
+        // something arrived in the receive buffer
+        // copy into buffer
+        *handle->pRxBuffPtr++ = (uint8_t)data;
+        obj->rx_buff.pos++;
+        // check for character match only if enabled though!
+        if ((obj->serial.char_match != SERIAL_RESERVED_CHAR_MATCH) && ((uint8_t)data == obj->serial.char_match)) {
+            event |= SERIAL_EVENT_RX_CHARACTER_MATCH;
+        }
+        if (--handle->RxXferCount == 0) {
+            // last receive byte, disable all rx interrupts
+            handle->Instance->CR1 &= ~(USART_CR1_RXNEIE | USART_CR1_PEIE);
+            handle->Instance->CR3 &= ~USART_CR3_EIE;
+            // set event rx complete
+            event |= SERIAL_EVENT_RX_COMPLETE;
+            // update handle state
+            if(handle->State == HAL_UART_STATE_BUSY_TX_RX) {
+                handle->State = HAL_UART_STATE_BUSY_TX;
+            } else {
+                handle->State = HAL_UART_STATE_READY;
+            }
+        }
     }
 
     return (event & obj->serial.event);
@@ -631,12 +666,37 @@ int serial_irq_handler_asynch(serial_t *obj)
 
 void serial_tx_abort_asynch(serial_t *obj)
 {
-    (void) obj;
+    UART_HandleTypeDef *handle = &UartHandle[obj->serial.module];
+    // stop interrupts
+    handle->Instance->CR1 &= ~(USART_CR1_RXNEIE | USART_CR1_PEIE);
+    handle->Instance->CR3 &= ~USART_CR3_EIE;
+    // clear flags
+    __HAL_UART_CLEAR_PEFLAG(handle);
+    // reset states
+    handle->RxXferCount = 0;
+    // update handle state
+    if(handle->State == HAL_UART_STATE_BUSY_TX_RX) {
+        handle->State = HAL_UART_STATE_BUSY_TX;
+    } else {
+        handle->State = HAL_UART_STATE_READY;
+    }
 }
 
 void serial_rx_abort_asynch(serial_t *obj)
 {
-    (void) obj;
+    UART_HandleTypeDef *handle = &UartHandle[obj->serial.module];
+    // stop interrupts
+    handle->Instance->CR1 &= ~(USART_CR1_TCIE | USART_CR1_TXEIE);
+    // clear flags
+    __HAL_UART_CLEAR_PEFLAG(handle);
+    // reset states
+    handle->TxXferCount = 0;
+    // update handle state
+    if(handle->State == HAL_UART_STATE_BUSY_TX_RX) {
+        handle->State = HAL_UART_STATE_BUSY_RX;
+    } else {
+        handle->State = HAL_UART_STATE_READY;
+    }
 }
 
 uint8_t serial_tx_active(serial_t *obj)
