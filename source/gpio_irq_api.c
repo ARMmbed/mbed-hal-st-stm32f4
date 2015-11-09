@@ -115,14 +115,14 @@ static void handle_interrupt_in(uint32_t irq_index, uint32_t max_num_pin_line)
                 // Check which edge has generated the irq
                 if ((gpio->IDR & pin) == 0) {
 		    // betzw: check presence of IRQ handler
-		    //        (this is necessary due to pontetial fake IRQs caused by rare HW gliches)
+		    //        (this is necessary due to potential spurious IRQs caused by rare HW glitches)
 		    if(gpio_check_handler(gpio_channel->channel_ids[gpio_idx], IRQ_FALL))
 			irq_handler(gpio_channel->channel_ids[gpio_idx], IRQ_FALL);
 		    else
 			idr_check_failure++;
 		} else  {
 		    // betzw: check presence of IRQ handler
-		    //        (this is necessary due to pontetial fake IRQs caused by rare HW gliches)
+		    //        (this is necessary due to potential spurious IRQs caused by rare HW glitches)
 		    if(gpio_check_handler(gpio_channel->channel_ids[gpio_idx], IRQ_RISE))
 			irq_handler(gpio_channel->channel_ids[gpio_idx], IRQ_RISE);
 		    else
