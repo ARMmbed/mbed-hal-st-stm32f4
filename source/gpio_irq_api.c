@@ -91,8 +91,6 @@ static uint32_t pin_base_nr[16] = {
 
 static gpio_irq_handler irq_handler;
 
-int gpio_check_handler(uint32_t id, gpio_irq_event event);
-static uint32_t idr_check_failure = 0;
 static void handle_interrupt_in(uint32_t irq_index, uint32_t max_num_pin_line)
 {
     gpio_channel_t *gpio_channel = &channels[irq_index];
@@ -114,19 +112,9 @@ static void handle_interrupt_in(uint32_t irq_index, uint32_t max_num_pin_line)
 
                 // Check which edge has generated the irq
                 if ((gpio->IDR & pin) == 0) {
-		    // betzw: check presence of IRQ handler
-		    //        (this is necessary due to potential spurious IRQs caused by rare HW glitches)
-		    if(gpio_check_handler(gpio_channel->channel_ids[gpio_idx], IRQ_FALL))
-			irq_handler(gpio_channel->channel_ids[gpio_idx], IRQ_FALL);
-		    else
-			idr_check_failure++;
-		} else  {
-		    // betzw: check presence of IRQ handler
-		    //        (this is necessary due to potential spurious IRQs caused by rare HW glitches)
-		    if(gpio_check_handler(gpio_channel->channel_ids[gpio_idx], IRQ_RISE))
-			irq_handler(gpio_channel->channel_ids[gpio_idx], IRQ_RISE);
-		    else
-			idr_check_failure++;
+                    irq_handler(gpio_channel->channel_ids[gpio_idx], IRQ_FALL);
+                } else  {
+                    irq_handler(gpio_channel->channel_ids[gpio_idx], IRQ_RISE);
                 }
             }
         }
@@ -285,10 +273,11 @@ void gpio_irq_free(gpio_irq_t *obj)
     obj->event = EDGE_NONE;
 }
 
+extern uint32_t get_pin_mode(PinName pin);
 void gpio_irq_set(gpio_irq_t *obj, gpio_irq_event event, uint32_t enable)
 {
     uint32_t mode = STM_MODE_IT_EVT_RESET;
-    uint32_t pull = GPIO_NOPULL;
+    uint32_t pull = get_pin_mode(obj->pin);
 
     if (enable) {
         if (event == IRQ_RISE) {
