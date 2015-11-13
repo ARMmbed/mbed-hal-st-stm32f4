@@ -27,7 +27,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************
  */
-#include "mbed-drivers/mbed_assert.h"
+#include "mbed_assert.h"
 #include "i2c_api.h"
 
 #if DEVICE_I2C
@@ -135,8 +135,7 @@ inline int i2c_start(i2c_t *obj)
     // Clear Acknowledge failure flag
     __HAL_I2C_CLEAR_FLAG(&I2cHandle, I2C_FLAG_AF);
 
-    // Generate the START condition
-    // Note: we are also removing an eventual pending STOP bit
+    // Generate the START condition and remove an eventual pending STOP bit
     i2c->CR1 = ((i2c->CR1 & ~I2C_CR1_STOP) | I2C_CR1_START);
 
     // Wait the START condition has been correctly sent
@@ -321,186 +320,5 @@ void i2c_reset(i2c_t *obj)
         __I2C3_RELEASE_RESET();
     }
 }
-
-#if DEVICE_I2CSLAVE
-
-void i2c_slave_address(i2c_t *obj, int idx, uint32_t address, uint32_t mask)
-{
-    // betzw: avoid warnings
-    (void)idx;
-    (void)mask;
-
-    I2C_TypeDef *i2c = (I2C_TypeDef *)(obj->i2c);
-    uint16_t tmpreg = 0;
-
-    // Get the old register value
-    tmpreg = i2c->OAR1;
-    // Reset address bits
-    tmpreg &= 0xFC00;
-    // Set new address
-    tmpreg |= (uint16_t)((uint16_t)address & (uint16_t)0x00FE); // 7-bits
-    // Store the new register value
-    i2c->OAR1 = tmpreg;
-}
-
-void i2c_slave_mode(i2c_t *obj, int enable_slave)
-{
-    // betzw: avoid warnings
-    (void)obj;
-
-    I2cHandle.Instance = (I2C_TypeDef *)(obj->i2c);
-    if (enable_slave) {
-        obj->slave = 1;
-        /* Enable Address Acknowledge */
-        I2cHandle.Instance->CR1 |= I2C_CR1_ACK;
-    }
-}
-
-// See I2CSlave.h
-#define NoData         0 // the slave has not been addressed
-#define ReadAddressed  1 // the master has requested a read from this slave (slave = transmitter)
-#define WriteGeneral   2 // the master is writing to all slave
-#define WriteAddressed 3 // the master is writing to this slave (slave = receiver)
-
-int i2c_slave_receive(i2c_t *obj)
-{
-    int retValue = NoData;
-
-    // betzw: avoid warnings
-    (void)obj;
-
-    if (__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_BUSY) == 1) {
-        if (__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_ADDR) == 1) {
-            if (__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_TRA) == 1)
-                retValue = ReadAddressed;
-            else
-                retValue = WriteAddressed;
-
-            __HAL_I2C_CLEAR_FLAG(&I2cHandle, I2C_FLAG_ADDR);
-        }
-    }
-
-    return (retValue);
-}
-
-int i2c_slave_read(i2c_t *obj, char *data, int length)
-{
-    uint32_t Timeout;
-    int size = 0;
-
-    I2cHandle.Instance = (I2C_TypeDef *)(obj->i2c);
-
-    while (length > 0) {
-        /* Wait until RXNE flag is set */
-        // Wait until the byte is received
-        Timeout = FLAG_TIMEOUT;
-        while (__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_RXNE) == RESET) {
-            Timeout--;
-            if (Timeout == 0) {
-                return -1;
-            }
-        }
-
-        /* Read data from DR */
-        (*data++) = I2cHandle.Instance->DR;
-        length--;
-        size++;
-
-        if ((__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_BTF) == SET) && (length != 0)) {
-            /* Read data from DR */
-            (*data++) = I2cHandle.Instance->DR;
-            length--;
-            size++;
-        }
-    }
-
-    /* Wait until STOP flag is set */
-    Timeout = FLAG_TIMEOUT;
-    while (__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_STOPF) == RESET) {
-        Timeout--;
-        if (Timeout == 0) {
-            return -1;
-        }
-    }
-
-    /* Clear STOP flag */
-    __HAL_I2C_CLEAR_STOPFLAG(&I2cHandle);
-
-    /* Wait until BUSY flag is reset */
-    Timeout = FLAG_TIMEOUT;
-    while (__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_BUSY) == SET) {
-        Timeout--;
-        if (Timeout == 0) {
-            return -1;
-        }
-    }
-
-    return size;
-}
-
-int i2c_slave_write(i2c_t *obj, const char *data, int length)
-{
-    uint32_t Timeout;
-    int size = 0;
-
-    I2cHandle.Instance = (I2C_TypeDef *)(obj->i2c);
-
-    while (length > 0) {
-        /* Wait until TXE flag is set */
-        Timeout = FLAG_TIMEOUT;
-        while (__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_TXE) == RESET) {
-            Timeout--;
-            if (Timeout == 0) {
-                return -1;
-            }
-        }
-
-
-        /* Write data to DR */
-        I2cHandle.Instance->DR = (*data++);
-        length--;
-        size++;
-
-        if ((__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_BTF) == SET) && (length != 0)) {
-            /* Write data to DR */
-            I2cHandle.Instance->DR = (*data++);
-            length--;
-            size++;
-        }
-    }
-
-    /* Wait until AF flag is set */
-    Timeout = FLAG_TIMEOUT;
-    while (__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_AF) == RESET) {
-        Timeout--;
-        if (Timeout == 0) {
-            return -1;
-        }
-    }
-
-
-    /* Clear AF flag */
-    __HAL_I2C_CLEAR_FLAG(&I2cHandle, I2C_FLAG_AF);
-
-
-    /* Wait until BUSY flag is reset */
-    Timeout = FLAG_TIMEOUT;
-    while (__HAL_I2C_GET_FLAG(&I2cHandle, I2C_FLAG_BUSY) == SET) {
-        Timeout--;
-        if (Timeout == 0) {
-            return -1;
-        }
-    }
-
-    I2cHandle.State = HAL_I2C_STATE_READY;
-
-    /* Process Unlocked */
-    __HAL_UNLOCK(&I2cHandle);
-
-    return size;
-}
-
-
-#endif // DEVICE_I2CSLAVE
 
 #endif // DEVICE_I2C
