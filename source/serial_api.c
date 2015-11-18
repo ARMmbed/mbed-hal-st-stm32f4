@@ -614,7 +614,7 @@ int serial_irq_handler_asynch(serial_t *obj)
         event |= SERIAL_EVENT_RX_OVERRUN_ERROR;
     }
 
-    if ((status & USART_SR_TC) && (handle->State & 0x10)) {
+    if ((status & USART_SR_TC) && (handle->State & 0x10) && !handle->TxXferCount) {
         // transmission is finally complete
         handle->Instance->CR1 &= ~USART_CR1_TCIE;
         // set event tx complete
