@@ -37,9 +37,15 @@ extern "C" {
 #endif
 
 typedef enum {
+#ifdef ADC1_BASE
     ADC_1 = (int)ADC1_BASE,
+#endif
+#ifdef ADC2_BASE
     ADC_2 = (int)ADC2_BASE,
+#endif
+#ifdef ADC3_BASE
     ADC_3 = (int)ADC3_BASE
+#endif
 } ADCName;
 
 typedef enum {
@@ -48,14 +54,30 @@ typedef enum {
 } DACName;
 
 typedef enum {
+#ifdef USART1_BASE
     UART_1 = (int)USART1_BASE,
+#endif
+#ifdef USART2_BASE
     UART_2 = (int)USART2_BASE,
+#endif
+#ifdef USART3_BASE
     UART_3 = (int)USART3_BASE,
+#endif
+#ifdef UART4_BASE
     UART_4 = (int)UART4_BASE,
+#endif
+#ifdef UART5_BASE
     UART_5 = (int)UART5_BASE,
+#endif
+#ifdef USART6_BASE
     UART_6 = (int)USART6_BASE,
+#endif
+#ifdef UART7_BASE
     UART_7 = (int)UART7_BASE,
+#endif
+#ifdef UART8_BASE
     UART_8 = (int)UART8_BASE
+#endif
 } UARTName;
 
 #ifdef YOTTA_CFG_HARDWARE_PINS_USBTX
@@ -71,34 +93,81 @@ typedef enum {
 #endif
 
 typedef enum {
+#ifdef SPI1_BASE
     SPI_1 = (int)SPI1_BASE,
+#endif
+#ifdef SPI2_BASE
     SPI_2 = (int)SPI2_BASE,
+#endif
+#ifdef SPI3_BASE
     SPI_3 = (int)SPI3_BASE,
+#endif
+#ifdef SPI4_BASE
     SPI_4 = (int)SPI4_BASE,
+#endif
+#ifdef SPI5_BASE
     SPI_5 = (int)SPI5_BASE,
+#endif
+#ifdef SPI6_BASE
     SPI_6 = (int)SPI6_BASE
+#endif
 } SPIName;
 
 typedef enum {
+#ifdef I2C1_BASE
     I2C_1 = (int)I2C1_BASE,
+#endif
+#ifdef I2C2_BASE
     I2C_2 = (int)I2C2_BASE,
+#endif
+#ifdef I2C3_BASE
     I2C_3 = (int)I2C3_BASE
+#endif
 } I2CName;
 
 typedef enum {
 #ifndef YOTTA_CFG_HARDWARE_RESERVED_PERIPHERALS_TIM1
     PWM_1  = (int)TIM1_BASE,
 #endif
+#ifdef TIM2_BASE
     PWM_2  = (int)TIM2_BASE,
+#endif
+#ifdef TIM3_BASE
     PWM_3  = (int)TIM3_BASE,
+#endif
+#ifdef TIM4_BASE
     PWM_4  = (int)TIM4_BASE,
+#endif
+#ifdef TIM5_BASE
     PWM_5  = (int)TIM5_BASE,
+#endif
+#ifdef TIM6_BASE
+    PWM_6  = (int)TIM6_BASE,
+#endif
+#ifdef TIM7_BASE
+    PWM_7  = (int)TIM7_BASE,
+#endif
+#ifdef TIM8_BASE
     PWM_8  = (int)TIM8_BASE,
+#endif
+#ifdef TIM9_BASE
     PWM_9  = (int)TIM9_BASE,
+#endif
+#ifdef TIM10_BASE
     PWM_10 = (int)TIM10_BASE,
+#endif
+#ifdef TIM11_BASE
     PWM_11 = (int)TIM11_BASE,
+#endif
+#ifdef TIM12_BASE
+    PWM_12 = (int)TIM12_BASE,
+#endif
+#ifdef TIM13_BASE
     PWM_13 = (int)TIM13_BASE,
+#endif
+#ifdef TIM14_BASE
     PWM_14 = (int)TIM14_BASE
+#endif
 } PWMName;
 
 #ifdef __cplusplus
