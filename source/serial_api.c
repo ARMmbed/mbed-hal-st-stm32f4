@@ -148,7 +148,7 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
     init_uart(obj);
 
     // For stdio management
-    if (obj->uart == STDIO_UART) {
+    if (tx == STDIO_UART_TX && rx == STDIO_UART_RX) {
         stdio_uart_inited = 1;
         memcpy(&stdio_uart, obj, sizeof(serial_t));
     }
