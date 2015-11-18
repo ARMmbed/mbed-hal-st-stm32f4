@@ -180,7 +180,7 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
     HAL_UART_Init(handle);
 
     // For stdio management
-    if (instance == STDIO_UART) {
+    if (tx == STDIO_UART_TX && rx == STDIO_UART_RX) {
         stdio_uart_inited = 1;
         memcpy(&stdio_uart, obj, sizeof(serial_t));
     }
@@ -400,7 +400,7 @@ void serial_irq_handler(serial_t *obj, uart_irq_handler handler, uint32_t id)
 {
     irq_handlers[obj->serial.module] = handler;
     serial_irq_ids[obj->serial.module] = id;
-    }
+}
 
 void serial_irq_set(serial_t *obj, SerialIrq irq, uint32_t enable)
 {
