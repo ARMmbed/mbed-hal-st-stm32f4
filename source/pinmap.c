@@ -66,14 +66,18 @@ uint32_t Set_GPIO_Clock(uint32_t port_idx)
             gpio_add = GPIOC_BASE;
             __GPIOC_CLK_ENABLE();
             break;
+#if defined GPIOD_BASE
         case PortD:
             gpio_add = GPIOD_BASE;
             __GPIOD_CLK_ENABLE();
             break;
+#endif
+#if defined GPIOE_BASE
         case PortE:
             gpio_add = GPIOE_BASE;
             __GPIOE_CLK_ENABLE();
             break;
+#endif
 #if defined GPIOF_BASE
         case PortF:
             gpio_add = GPIOF_BASE;
@@ -174,4 +178,25 @@ void pin_mode(PinName pin, PinMode mode)
     gpio->PUPDR &= (uint32_t)(~(GPIO_PUPDR_PUPDR0 << (pin_index * 2)));
     gpio->PUPDR |= (uint32_t)(pupd << (pin_index * 2));
 
+}
+
+/**
+ * Get current pin pull-up/pull-down mode
+ */
+uint32_t get_pin_mode(PinName pin)
+{
+    MBED_ASSERT(pin != (PinName)NC);
+    uint32_t port_index = STM_PORT(pin);
+    uint32_t pin_index  = STM_PIN(pin);
+
+    // Enable GPIO clock
+    uint32_t gpio_add = Set_GPIO_Clock(port_index);
+    GPIO_TypeDef *gpio = (GPIO_TypeDef *)gpio_add;
+
+    // Get pull-up/pull-down mode
+    uint32_t temp = gpio->PUPDR;
+    temp &= (uint32_t)(GPIO_PUPDR_PUPDR0 << (pin_index * 2));
+    temp >>= (pin_index * 2);
+
+    return temp;
 }

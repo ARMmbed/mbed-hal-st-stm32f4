@@ -273,10 +273,11 @@ void gpio_irq_free(gpio_irq_t *obj)
     obj->event = EDGE_NONE;
 }
 
+extern uint32_t get_pin_mode(PinName pin);
 void gpio_irq_set(gpio_irq_t *obj, gpio_irq_event event, uint32_t enable)
 {
     uint32_t mode = STM_MODE_IT_EVT_RESET;
-    uint32_t pull = GPIO_NOPULL;
+    uint32_t pull = get_pin_mode(obj->pin);
 
     if (enable) {
         if (event == IRQ_RISE) {

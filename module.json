@@ -27,6 +27,9 @@
     "mbed-hal": "*"
   },
   "targetDependencies": {
+    "stm32f401re": {
+      "mbed-hal-st-stm32f401re": "~0.1.0"
+    },
     "stm32f429zi": {
       "mbed-hal-st-stm32f429zi": "^1.0.0"
     },
