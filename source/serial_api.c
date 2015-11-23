@@ -664,7 +664,7 @@ int serial_irq_handler_asynch(serial_t *obj)
     return (event & obj->serial.event);
 }
 
-void serial_tx_abort_asynch(serial_t *obj)
+void serial_rx_abort_asynch(serial_t *obj)
 {
     UART_HandleTypeDef *handle = &UartHandle[obj->serial.module];
     // stop interrupts
@@ -682,7 +682,7 @@ void serial_tx_abort_asynch(serial_t *obj)
     }
 }
 
-void serial_rx_abort_asynch(serial_t *obj)
+void serial_tx_abort_asynch(serial_t *obj)
 {
     UART_HandleTypeDef *handle = &UartHandle[obj->serial.module];
     // stop interrupts
@@ -712,7 +712,7 @@ uint8_t serial_tx_active(serial_t *obj)
         case HAL_UART_STATE_BUSY_RX:
             return 0;
         default:
-            return -1;
+            return 1;
     }
 }
 
@@ -729,7 +729,7 @@ uint8_t serial_rx_active(serial_t *obj)
         case HAL_UART_STATE_BUSY_TX:
             return 0;
         default:
-            return -1;
+            return 1;
     }
 }
 
