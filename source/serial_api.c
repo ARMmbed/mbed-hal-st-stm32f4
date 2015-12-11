@@ -53,6 +53,10 @@
 #   define DEBUG_PRINTF(...) {}
 #endif
 
+#ifndef YOTTA_CFG_MBED_OS_STDIO_DEFAULT_BAUD
+#   define YOTTA_CFG_MBED_OS_STDIO_DEFAULT_BAUD 9600
+#endif
+
 #define UART_NUM (8)
 
 static UART_HandleTypeDef UartHandle[UART_NUM];
@@ -176,6 +180,10 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
     handle->Init.OverSampling   = UART_OVERSAMPLING_16;
     handle->TxXferCount         = 0;
     handle->RxXferCount         = 0;
+
+    if (tx == STDIO_UART_TX && rx == STDIO_UART_RX) {
+        handle->Init.BaudRate   = YOTTA_CFG_MBED_OS_STDIO_DEFAULT_BAUD;
+    }
 
     HAL_UART_Init(handle);
 
