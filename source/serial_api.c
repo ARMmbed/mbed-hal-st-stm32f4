@@ -53,10 +53,6 @@
 #   define DEBUG_PRINTF(...) {}
 #endif
 
-#ifndef YOTTA_CFG_MBED_OS_STDIO_DEFAULT_BAUD
-#   define YOTTA_CFG_MBED_OS_STDIO_DEFAULT_BAUD 9600
-#endif
-
 #define UART_NUM (8)
 
 static UART_HandleTypeDef UartHandle[UART_NUM];
@@ -93,9 +89,6 @@ static const IRQn_Type UartIRQs[UART_NUM] = {
 
 static uint32_t serial_irq_ids[UART_NUM] = {0, 0, 0, 0, 0, 0, 0, 0};
 static uart_irq_handler irq_handlers[UART_NUM] = {0, 0, 0, 0, 0, 0, 0, 0};
-
-int stdio_uart_inited = 0;
-serial_t stdio_uart;
 
 void serial_init(serial_t *obj, PinName tx, PinName rx)
 {
@@ -186,12 +179,6 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
     }
 
     HAL_UART_Init(handle);
-
-    // For stdio management
-    if (tx == STDIO_UART_TX && rx == STDIO_UART_RX) {
-        stdio_uart_inited = 1;
-        memcpy(&stdio_uart, obj, sizeof(serial_t));
-    }
 
     // DEBUG_PRINTF("UART%u: Init\n", obj->serial.module+1);
 }
