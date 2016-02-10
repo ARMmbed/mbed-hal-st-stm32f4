@@ -27,13 +27,13 @@
     "mbed-hal": "*"
   },
   "targetDependencies": {
-    "stm32f401re": {
+    "stm32f401re-no-inherit": {
       "mbed-hal-st-stm32f401re": "~0.1.0"
     },
-    "stm32f429zi": {
+    "stm32f429zi-no-inherit": {
       "mbed-hal-st-stm32f429zi": "^1.0.0"
     },
-    "stm32f439zi": {
+    "stm32f439zi-no-inherit": {
       "mbed-hal-st-stm32f429zi": "^1.0.0"
     }
   }
