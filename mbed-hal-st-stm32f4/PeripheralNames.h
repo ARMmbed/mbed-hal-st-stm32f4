@@ -170,6 +170,11 @@ typedef enum {
 #endif
 } PWMName;
 
+typedef enum {
+    DMA_1 = (int)DMA1_BASE,
+    DMA_2 = (int)DMA2_BASE
+} DMAName;
+
 #ifdef __cplusplus
 }
 #endif

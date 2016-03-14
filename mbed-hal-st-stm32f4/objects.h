@@ -70,8 +70,9 @@ struct serial_s {
     PinName pin_tx;
     PinName pin_rx;
     uint8_t module;
-    uint32_t event;
-    uint8_t char_match;
+#if DEVICE_SERIAL_ASYNCH
+    uint32_t events;
+#endif
  };
 
 struct spi_s {
