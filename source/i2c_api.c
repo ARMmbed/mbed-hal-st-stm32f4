@@ -28,7 +28,7 @@
  *******************************************************************************
  */
 #include "mbed-drivers/mbed_assert.h"
-#include "i2c_api.h"
+#include "i2c_api.h" 
 
 #if DEVICE_I2C
 
