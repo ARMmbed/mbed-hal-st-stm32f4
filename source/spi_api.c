@@ -62,7 +62,7 @@ typedef enum {
 } transfer_type_t;
 
 
-// Temporary workaround to pass Jenkins CI
+// Allow for backward compatibility
 #ifndef MODULES_SIZE_SPI
 #define MODULES_SIZE_SPI MODULE_SIZE_SPI
 #endif
