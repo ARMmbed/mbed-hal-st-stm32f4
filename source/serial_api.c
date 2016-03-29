@@ -66,6 +66,11 @@
 #define UART_STATE_TX_ACTIVE 0x10
 
 #if DEVICE_SERIAL_ASYNCH_DMA
+
+#ifndef USE_STM32F4XX_HAL_DMA__FIX
+#error Please use stm32f4xx_hal_dma__FIX.c
+#endif
+
 static const uint32_t DMA_UartRx_Channel[UART_NUM] = {DMA_CHANNEL_4, DMA_CHANNEL_4, DMA_CHANNEL_4, DMA_CHANNEL_4, \
                                                       DMA_CHANNEL_4, DMA_CHANNEL_5, DMA_CHANNEL_5, DMA_CHANNEL_5};
 DMA_Stream_TypeDef *DMA_UartRx_Stream[UART_NUM] = {
