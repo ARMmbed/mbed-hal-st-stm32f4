@@ -212,3 +212,7 @@
  PK_5  = 0xA5,
  PK_6  = 0xA6,
  PK_7  = 0xA7,
+
+ ADC_TEMP = 0xF0,
+ ADC_VREF = 0xF1,
+ ADC_VBAT = 0xF2,
