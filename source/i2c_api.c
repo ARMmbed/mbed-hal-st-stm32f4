@@ -52,44 +52,44 @@ int i2c2_inited = 0;
 int i2c3_inited = 0;
 
 #if defined(I2C3_BASE)
-  #define MODULE_SIZE_I2C 3
+  #define MODULES_SIZE_I2C 3
   #if DEVICE_I2C_ASYNCH
-static const IRQn_Type I2cEventIRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2cEventIRQs[MODULES_SIZE_I2C] = {  
     I2C1_EV_IRQn,  
     I2C2_EV_IRQn, 
     I2C3_EV_IRQn,  
 };  
-static const IRQn_Type I2cErrorIRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2cErrorIRQs[MODULES_SIZE_I2C] = {  
     I2C1_ER_IRQn,  
     I2C2_ER_IRQn,  
     I2C3_ER_IRQn,
 };
   #endif
 #elif defined(I2C2_BASE)
-  #define MODULE_SIZE_I2C 2
+  #define MODULES_SIZE_I2C 2
   #if DEVICE_I2C_ASYNCH
-static const IRQn_Type I2cEventIRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2cEventIRQs[MODULES_SIZE_I2C] = {  
     I2C1_EV_IRQn,  
     I2C2_EV_IRQn,  
 };  
-static const IRQn_Type I2cErrorIRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2cErrorIRQs[MODULES_SIZE_I2C] = {  
     I2C1_ER_IRQn,  
     I2C2_ER_IRQn,  
 };
   #endif
 #else
-  #define MODULE_SIZE_I2C 1
+  #define MODULES_SIZE_I2C 1
   #if DEVICE_I2C_ASYNCH
-static const IRQn_Type I2cEventIRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2cEventIRQs[MODULES_SIZE_I2C] = {  
     I2C1_EV_IRQn,  
 };  
-static const IRQn_Type I2cErrorIRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2cErrorIRQs[MODULES_SIZE_I2C] = {  
     I2C1_ER_IRQn,  
 };
   #endif
 #endif
 
-I2C_HandleTypeDef t_I2cHandle[MODULE_SIZE_I2C];
+I2C_HandleTypeDef t_I2cHandle[MODULES_SIZE_I2C];
 
 #if !DEVICE_I2C_ASYNCH
 int i2c_module_lookup(i2c_t *obj)
@@ -551,38 +551,38 @@ void i2c_reset(i2c_t *obj)
 
 #define I2C_TIMEOUT_FLAG          ((uint32_t)35)     /* 35 ms */
 
-uint32_t g_event[MODULE_SIZE_I2C];
-uint32_t g_stop[MODULE_SIZE_I2C];
-uint32_t g_stop_previous[MODULE_SIZE_I2C];
-uint32_t g_transmitIT[MODULE_SIZE_I2C];
-uint32_t g_receiveDMA[MODULE_SIZE_I2C];
-uint32_t g_transmitDMA[MODULE_SIZE_I2C];
+uint32_t g_event[MODULES_SIZE_I2C];
+uint32_t g_stop[MODULES_SIZE_I2C];
+uint32_t g_stop_previous[MODULES_SIZE_I2C];
+uint32_t g_transmitIT[MODULES_SIZE_I2C];
+uint32_t g_receiveDMA[MODULES_SIZE_I2C];
+uint32_t g_transmitDMA[MODULES_SIZE_I2C];
 
 #if defined(I2C3_BASE)
-static const IRQn_Type I2C_DMATx_IRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2C_DMATx_IRQs[MODULES_SIZE_I2C] = {  
     DMA1_Stream7_IRQn,  
     DMA1_Stream7_IRQn, 
     DMA1_Stream4_IRQn,  
 };
-static const IRQn_Type I2C_DMARx_IRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2C_DMARx_IRQs[MODULES_SIZE_I2C] = {  
     DMA1_Stream0_IRQn,  
     DMA1_Stream2_IRQn,
     DMA1_Stream1_IRQn,  
 };
 #elif defined(I2C2_BASE)
-static const IRQn_Type I2C_DMATx_IRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2C_DMATx_IRQs[MODULES_SIZE_I2C] = {  
     DMA1_Stream7_IRQn,  
     DMA1_Stream7_IRQn,  
 };
-static const IRQn_Type I2C_DMARx_IRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2C_DMARx_IRQs[MODULES_SIZE_I2C] = {  
     DMA1_Stream0_IRQn,  
     DMA1_Stream2_IRQn,  
 };
 #else
-static const IRQn_Type I2C_DMATx_IRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2C_DMATx_IRQs[MODULES_SIZE_I2C] = {  
     DMA1_Stream7_IRQn,  
 };
-static const IRQn_Type I2C_DMARx_IRQs[MODULE_SIZE_I2C] = {  
+static const IRQn_Type I2C_DMARx_IRQs[MODULES_SIZE_I2C] = {  
     DMA1_Stream0_IRQn,  
 };
 #endif
@@ -842,13 +842,13 @@ void i2c_abort_asynch(i2c_t *obj){
 
 #else // !DEVICE_I2C_ASYNCH_DMA
 
-uint32_t g_handler[MODULE_SIZE_I2C];
-uint32_t g_event[MODULE_SIZE_I2C];
-uint32_t g_stop[MODULE_SIZE_I2C];
-uint32_t g_stop_previous[MODULE_SIZE_I2C];
-uint32_t g_transmitIT[MODULE_SIZE_I2C];
-uint32_t g_receiveIT[MODULE_SIZE_I2C];
-uint32_t g_errorIT[MODULE_SIZE_I2C];
+uint32_t g_handler[MODULES_SIZE_I2C];
+uint32_t g_event[MODULES_SIZE_I2C];
+uint32_t g_stop[MODULES_SIZE_I2C];
+uint32_t g_stop_previous[MODULES_SIZE_I2C];
+uint32_t g_transmitIT[MODULES_SIZE_I2C];
+uint32_t g_receiveIT[MODULES_SIZE_I2C];
+uint32_t g_errorIT[MODULES_SIZE_I2C];
 
 #if defined(I2C1_BASE)
 void i2c1_irq_handler(void)
