@@ -1,6 +1,6 @@
 {
   "name": "mbed-hal-st-stm32f4",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "mbed HAL module for STM32F4 microcontrollers",
   "keywords": [
     "mbed",
