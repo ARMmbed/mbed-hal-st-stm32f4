@@ -62,18 +62,23 @@ typedef enum {
 } transfer_type_t;
 
 
-static SPI_HandleTypeDef SpiHandle[MODULE_SIZE_SPI];
-static const IRQn_Type SpiIRQs[MODULE_SIZE_SPI] = {
+// Allow for backward compatibility
+#ifndef MODULES_SIZE_SPI
+#define MODULES_SIZE_SPI MODULE_SIZE_SPI
+#endif
+
+static SPI_HandleTypeDef SpiHandle[MODULES_SIZE_SPI];
+static const IRQn_Type SpiIRQs[MODULES_SIZE_SPI] = {
     SPI1_IRQn,
     SPI2_IRQn,
     SPI3_IRQn,
-#if MODULE_SIZE_SPI > 3
+#if MODULES_SIZE_SPI > 3
     SPI4_IRQn,
 #endif
-#if MODULE_SIZE_SPI > 4
+#if MODULES_SIZE_SPI > 4
     SPI5_IRQn,
 #endif
-#if MODULE_SIZE_SPI > 5
+#if MODULES_SIZE_SPI > 5
     SPI6_IRQn
 #endif
 };
@@ -115,19 +120,19 @@ void spi_init(spi_t *obj, PinName mosi, PinName miso, PinName sclk)
             __SPI3_CLK_ENABLE();
             obj->spi.module = 2;
             break;
-#if MODULE_SIZE_SPI > 3
+#if MODULES_SIZE_SPI > 3
         case SPI_4:
             __SPI4_CLK_ENABLE();
             obj->spi.module = 3;
             break;
 #endif
-#if MODULE_SIZE_SPI > 4
+#if MODULES_SIZE_SPI > 4
         case SPI_5:
             __SPI5_CLK_ENABLE();
             obj->spi.module = 4;
             break;
 #endif
-#if MODULE_SIZE_SPI > 5
+#if MODULES_SIZE_SPI > 5
         case SPI_6:
             __SPI6_CLK_ENABLE();
             obj->spi.module = 5;
@@ -186,21 +191,21 @@ void spi_free(spi_t *obj)
             __SPI3_RELEASE_RESET();
             __SPI3_CLK_DISABLE();
             break;
-#if MODULE_SIZE_SPI > 3
+#if MODULES_SIZE_SPI > 3
         case 3:
             __SPI4_FORCE_RESET();
             __SPI4_RELEASE_RESET();
             __SPI4_CLK_DISABLE();
             break;
 #endif
-#if MODULE_SIZE_SPI > 4
+#if MODULES_SIZE_SPI > 4
         case 4:
             __SPI5_FORCE_RESET();
             __SPI5_RELEASE_RESET();
             __SPI5_CLK_DISABLE();
             break;
 #endif
-#if MODULE_SIZE_SPI > 5
+#if MODULES_SIZE_SPI > 5
         case 5:
             __SPI6_FORCE_RESET();
             __SPI6_RELEASE_RESET();
